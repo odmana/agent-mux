@@ -2,9 +2,11 @@ import { Router } from 'express';
 import { readdirSync } from 'node:fs';
 import { resolve, dirname, basename } from 'node:path';
 import { homedir } from 'node:os';
+import { existsSync } from 'node:fs';
 import {
   createSession,
   getAllSessions,
+  getSession,
   deleteSession,
 } from './sessions.js';
 
@@ -50,8 +52,12 @@ export function createRouter(shell: string): Router {
       res.status(400).json({ error: 'directory is required' });
       return;
     }
+    if (!existsSync(directory)) {
+      res.status(400).json({ error: 'directory does not exist' });
+      return;
+    }
     const session = createSession(directory, shell);
-    res.json({
+    res.status(201).json({
       id: session.id,
       directory: session.directory,
       branch: session.branch,
@@ -68,6 +74,10 @@ export function createRouter(shell: string): Router {
   });
 
   router.delete('/api/sessions/:id', (req, res) => {
+    if (!getSession(req.params.id)) {
+      res.status(404).json({ error: 'session not found' });
+      return;
+    }
     deleteSession(req.params.id);
     res.status(204).end();
   });

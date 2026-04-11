@@ -40,6 +40,22 @@ describe('listDirectories', () => {
     }
   });
 
+  it('matches partial directory names', () => {
+    const home = process.env.HOME || '/tmp';
+    // Use a partial prefix that should match at least one directory
+    const allDirs = listDirectories(home + '/');
+    if (allDirs.length > 0) {
+      const firstName = allDirs[0].split('/').pop()!;
+      const partial = firstName.slice(0, 2);
+      const matched = listDirectories(home + '/' + partial);
+      expect(matched.length).toBeGreaterThan(0);
+      for (const dir of matched) {
+        const name = dir.split('/').pop()!.toLowerCase();
+        expect(name.startsWith(partial.toLowerCase())).toBe(true);
+      }
+    }
+  });
+
   it('returns empty for empty prefix', () => {
     const dirs = listDirectories('');
     expect(dirs).toEqual([]);
