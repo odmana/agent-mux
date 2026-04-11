@@ -5,7 +5,6 @@ import {
   getAllSessions,
   deleteSession,
   killAllSessions,
-  type Session,
 } from '../src/sessions.js';
 
 // Mock shell that exists on all platforms
