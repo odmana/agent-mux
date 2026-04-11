@@ -23,12 +23,14 @@ export default function App() {
   };
 
   const handleCloseSession = async (id: string) => {
-    await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
-    const remaining = sessions.filter((s) => s.id !== id);
-    setSessions(remaining);
-    setActiveId((prev) => {
-      if (prev !== id) return prev;
-      return remaining.length > 0 ? remaining[0].id : null;
+    const res = await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
+    if (!res.ok) return;
+    setSessions((prev) => {
+      const remaining = prev.filter((s) => s.id !== id);
+      if (activeId === id) {
+        setActiveId(remaining.length > 0 ? remaining[0].id : null);
+      }
+      return remaining;
     });
   };
 
