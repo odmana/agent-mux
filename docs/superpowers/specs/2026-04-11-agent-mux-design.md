@@ -43,7 +43,7 @@ interface Session {
   terminal: Terminal; // xterm-headless
   directory: string;
   branch: string;
-  notificationState: 'none' | 'needs_input' | 'permission';
+  notificationState: 'none' | 'idle' | 'permission';
 }
 ```
 
@@ -53,6 +53,7 @@ Responsibilities:
 - Read git branch name from each session's directory
 - Watch for notification triggers via Claude Code hooks (file-based)
 - Clear notification state when user switches to a tab
+- Clear notification state when a background tab produces PTY output after being idle
 
 ### Renderer
 
@@ -60,7 +61,7 @@ No TUI framework. Thin custom renderer using raw ANSI escape sequences.
 
 - Enters alternate screen buffer on start, restores on exit
 - Two regions: sidebar (fixed width ~30 cols) and main pane (remaining width)
-- **Sidebar:** tab list showing directory name, git branch, notification dot (blue). Highlights active tab. "+" row at bottom.
+- **Sidebar:** tab list showing directory name, git branch, notification dot (blue for idle, red for permission required). Highlights active tab. "+" row at bottom.
 - **Main pane:** writes serialized xterm-headless buffer, clipped to pane dimensions
 - Redraws on: tab switch, PTY output (debounced), terminal resize, notification state change
 
@@ -115,7 +116,7 @@ The `# agent-mux` comment at the end acts as a marker for identifying and removi
 
 The session manager watches `/tmp/agent-mux-*.state` using `fs.watch()`. Matching a state file to a tab works by PTY ancestry: agent-mux knows each tab's PTY pid, and Claude Code runs as a child process of that PTY's shell. When a state file appears, agent-mux checks which tab's PTY is an ancestor of the Claude Code process that wrote it (via the PID in the state file). As a simpler fallback for the POC, the hook command can include the shell's CWD or PTY pid, and agent-mux matches on directory path.
 
-The sidebar renders a blue dot next to the matched tab. Switching to the tab clears the notification.
+The sidebar renders a colored dot: blue for `idle_prompt` (waiting for user input), red for `permission_prompt` (needs permission to proceed). Blue dots only appear on background tabs — if the tab is active, the user can already see Claude is waiting. Red dots appear on all tabs (including the active tab) and persist until resolved — they clear only when the tab produces PTY output, indicating the permission was granted and Claude has resumed work. Switching to a tab clears blue dots but not red ones.
 
 Non-Claude tools: no notification support in POC.
 
