@@ -1,4 +1,5 @@
 node_modules/
 dist/
+.pnpm-store/
 .claude/settings.local.json
 .superpowers
