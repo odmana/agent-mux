@@ -1,4 +1,4 @@
-# Agent Stack — Terminal Multiplexer for AI Agents
+# Agent Mux — Terminal Multiplexer for AI Agents
 
 **Date:** 2026-04-11
 **Status:** POC
@@ -101,14 +101,14 @@ Integrates with Claude Code's hooks system. Requires the user to configure a `No
       "matcher": "idle_prompt|permission_prompt",
       "hooks": [{
         "type": "command",
-        "command": "echo $HOOK_EVENT_NAME > /tmp/agent-stack-$SESSION_ID.state"
+        "command": "echo $HOOK_EVENT_NAME > /tmp/agent-mux-$SESSION_ID.state"
       }]
     }]
   }
 }
 ```
 
-The session manager watches `/tmp/agent-stack-*.state` using `fs.watch()`. Matching a state file to a tab works by PTY ancestry: agent-stack knows each tab's PTY pid, and Claude Code runs as a child process of that PTY's shell. When a state file appears, agent-stack checks which tab's PTY is an ancestor of the Claude Code process that wrote it (via the PID in the state file). As a simpler fallback for the POC, the hook command can include the shell's CWD or PTY pid, and agent-stack matches on directory path.
+The session manager watches `/tmp/agent-mux-*.state` using `fs.watch()`. Matching a state file to a tab works by PTY ancestry: agent-mux knows each tab's PTY pid, and Claude Code runs as a child process of that PTY's shell. When a state file appears, agent-mux checks which tab's PTY is an ancestor of the Claude Code process that wrote it (via the PID in the state file). As a simpler fallback for the POC, the hook command can include the shell's CWD or PTY pid, and agent-mux matches on directory path.
 
 The sidebar renders a blue dot next to the matched tab. Switching to the tab clears the notification.
 
@@ -130,9 +130,9 @@ Non-Claude tools: no notification support in POC.
 ## Project Structure
 
 ```
-agent-stack/
+agent-mux/
 ├── .mise.toml            # node version
-├── package.json          # type: module, bin: agent-stack
+├── package.json          # type: module, bin: agent-mux
 ├── tsconfig.json
 ├── src/
 │   ├── index.ts          # entry point, parse args, bootstrap
@@ -145,7 +145,7 @@ agent-stack/
 
 ## User Flow
 
-1. User runs `agent-stack` (or `npx agent-stack`)
+1. User runs `agent-mux` (or `npx agent-mux`)
 2. App launches in alternate screen buffer with an empty sidebar and a prompt to add a tab
 3. User presses "+" or `Ctrl+A, n`
 4. Directory picker overlay appears. User types a path with autocomplete.
@@ -154,7 +154,7 @@ agent-stack/
 7. User presses `Ctrl+A` to enter navigation mode, adds more tabs.
 8. When Claude Code in a background tab finishes and waits for input, a blue dot appears on that tab.
 9. User clicks or navigates to the tab to resume interaction.
-10. `Ctrl+C` / `Ctrl+D` in the shell exits the shell. Closing the last tab exits agent-stack.
+10. `Ctrl+C` / `Ctrl+D` in the shell exits the shell. Closing the last tab exits agent-mux.
 
 ## POC Scope
 
