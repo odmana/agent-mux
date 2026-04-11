@@ -16,7 +16,7 @@ app.use(createRouter(config.shell));
 // Serve client build in production
 const clientDist = resolve(import.meta.dirname, '../../client/dist');
 app.use(express.static(clientDist));
-app.get('*', (_req, res, next) => {
+app.get('{*path}', (_req, res, next) => {
   // Only serve index.html for non-API routes
   if (_req.path.startsWith('/api')) return next();
   res.sendFile(resolve(clientDist, 'index.html'), (err) => {
