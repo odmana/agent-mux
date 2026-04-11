@@ -39,7 +39,7 @@ export default function DirectoryPicker({ onConfirm, onCancel }: DirectoryPicker
     if (e.key === 'Escape') {
       onCancel();
     } else if (e.key === 'Enter') {
-      onConfirm(input);
+      if (input.trim()) onConfirm(input);
     } else if (e.key === 'Tab') {
       e.preventDefault();
       if (suggestions.length > 0) {
