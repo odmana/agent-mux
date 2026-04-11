@@ -49,6 +49,14 @@ export function useSession(
       terminal.write(event.data);
     };
 
+    ws.onerror = () => {
+      terminal.write('\r\n\x1b[31mConnection error\x1b[0m\r\n');
+    };
+
+    ws.onclose = () => {
+      terminal.write('\r\n\x1b[33mDisconnected\x1b[0m\r\n');
+    };
+
     terminal.onData((data) => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(data);
