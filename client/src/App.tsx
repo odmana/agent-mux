@@ -9,10 +9,10 @@ export default function App() {
 
   const handleCloseSession = async (id: string) => {
     await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
-    setSessions((prev) => prev.filter((s) => s.id !== id));
+    const remaining = sessions.filter((s) => s.id !== id);
+    setSessions(remaining);
     setActiveId((prev) => {
       if (prev !== id) return prev;
-      const remaining = sessions.filter((s) => s.id !== id);
       return remaining.length > 0 ? remaining[0].id : null;
     });
   };
