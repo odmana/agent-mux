@@ -1,8 +1,7 @@
 import { Router } from 'express';
-import { readdirSync } from 'node:fs';
+import { readdirSync, existsSync } from 'node:fs';
 import { resolve, dirname, basename } from 'node:path';
 import { homedir } from 'node:os';
-import { existsSync } from 'node:fs';
 import {
   createSession,
   getAllSessions,
@@ -10,12 +9,14 @@ import {
   deleteSession,
 } from './sessions.js';
 
+function expandTilde(path: string): string {
+  return path.startsWith('~') ? homedir() + path.slice(1) : path;
+}
+
 export function listDirectories(prefix: string): string[] {
   if (!prefix) return [];
 
-  const expanded = prefix.startsWith('~')
-    ? homedir() + prefix.slice(1)
-    : prefix;
+  const expanded = expandTilde(prefix);
 
   try {
     if (expanded.endsWith('/')) {
@@ -52,11 +53,12 @@ export function createRouter(shell: string): Router {
       res.status(400).json({ error: 'directory is required' });
       return;
     }
-    if (!existsSync(directory)) {
+    const expanded = expandTilde(directory);
+    if (!existsSync(expanded)) {
       res.status(400).json({ error: 'directory does not exist' });
       return;
     }
-    const session = createSession(directory, shell);
+    const session = createSession(expanded, shell);
     res.status(201).json({
       id: session.id,
       directory: session.directory,

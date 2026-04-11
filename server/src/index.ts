@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { resolve } from 'node:path';
 import { loadConfig } from './config.js';
 import { createRouter } from './routes.js';
-import { getSession, deleteSession, killAllSessions, type Session } from './sessions.js';
+import { getSession, killAllSessions, type Session } from './sessions.js';
 import { resizePty } from './pty-manager.js';
 
 const config = loadConfig();
@@ -82,7 +82,6 @@ wss.on('connection', (ws: WebSocket, _req: IncomingMessage, session: Session) =>
   ws.on('close', () => {
     dataHandler.dispose();
     exitHandler.dispose();
-    deleteSession(session.id);
   });
 
   ws.on('error', (err) => {
