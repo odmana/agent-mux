@@ -6,7 +6,6 @@ import {
   createSession,
   getAllSessions,
   deleteSession,
-  getSession,
 } from './sessions.js';
 
 export function listDirectories(prefix: string): string[] {
