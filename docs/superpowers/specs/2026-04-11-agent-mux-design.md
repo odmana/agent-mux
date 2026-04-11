@@ -92,21 +92,26 @@ Triggered by pressing "+" or `Ctrl+A, n`. Renders an inline text input overlaid 
 
 ### Notification System
 
-Integrates with Claude Code's hooks system. Requires the user to configure a `Notification` hook in `~/.claude/settings.json`:
+Integrates with Claude Code's hooks system. On first run, agent-mux auto-configures the hook:
+
+1. Read `~/.claude/settings.json` (create if missing)
+2. Parse the existing `hooks.Notification` array (or create it)
+3. Check if an agent-mux hook entry already exists (identified by a marker in the command string)
+4. If not present, append the entry to the array and write back
+
+The hook entry appended:
 
 ```json
 {
-  "hooks": {
-    "Notification": [{
-      "matcher": "idle_prompt|permission_prompt",
-      "hooks": [{
-        "type": "command",
-        "command": "echo $HOOK_EVENT_NAME > /tmp/agent-mux-$SESSION_ID.state"
-      }]
-    }]
-  }
+  "matcher": "idle_prompt|permission_prompt",
+  "hooks": [{
+    "type": "command",
+    "command": "echo $HOOK_EVENT_NAME > /tmp/agent-mux-$SESSION_ID.state # agent-mux"
+  }]
 }
 ```
+
+The `# agent-mux` comment at the end acts as a marker for identifying and removing the hook later. Existing user hooks in the `Notification` array are left untouched.
 
 The session manager watches `/tmp/agent-mux-*.state` using `fs.watch()`. Matching a state file to a tab works by PTY ancestry: agent-mux knows each tab's PTY pid, and Claude Code runs as a child process of that PTY's shell. When a state file appears, agent-mux checks which tab's PTY is an ancestor of the Claude Code process that wrote it (via the PID in the state file). As a simpler fallback for the POC, the hook command can include the shell's CWD or PTY pid, and agent-mux matches on directory path.
 
