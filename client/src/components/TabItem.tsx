@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Session } from '../types';
+import { uiColors } from '../terminal-config';
 
 interface TabItemProps {
   session: Session;
@@ -15,25 +16,37 @@ export default function TabItem({ session, isActive, onClick, onClose }: TabItem
   return (
     <div
       onClick={onClick}
-      className={`group px-3 py-2.5 rounded-lg cursor-pointer transition-all ${
-        isActive
-          ? 'bg-white/[0.07] border border-white/[0.1]'
-          : 'border border-transparent hover:bg-white/[0.04]'
-      }`}
+      className="group px-3 py-2.5 rounded-lg cursor-pointer transition-all"
+      style={{
+        background: isActive ? uiColors.activeBg : 'transparent',
+        border: `1px solid ${isActive ? uiColors.activeBorder : 'transparent'}`,
+      }}
+      onMouseEnter={(e) => {
+        if (!isActive) e.currentTarget.style.background = uiColors.hoverBg;
+      }}
+      onMouseLeave={(e) => {
+        if (!isActive) e.currentTarget.style.background = 'transparent';
+      }}
     >
       {confirming ? (
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[12px] text-white/50">Close session?</span>
+          <span className="text-[12px]" style={{ color: uiColors.textMuted }}>Close session?</span>
           <div className="flex gap-1">
             <button
               onClick={(e) => { e.stopPropagation(); onClose(); }}
-              className="px-2 py-0.5 rounded text-[11px] bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+              className="px-2 py-0.5 rounded text-[11px] transition-colors"
+              style={{ background: uiColors.dangerBg, color: uiColors.dangerText }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = uiColors.dangerHoverBg; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = uiColors.dangerBg; }}
             >
               Yes
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setConfirming(false); }}
-              className="px-2 py-0.5 rounded text-[11px] bg-white/[0.06] text-white/40 hover:bg-white/[0.1] transition-colors"
+              className="px-2 py-0.5 rounded text-[11px] transition-colors"
+              style={{ background: uiColors.activeBg, color: uiColors.textMuted }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = uiColors.activeBorder; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = uiColors.activeBg; }}
             >
               No
             </button>
@@ -43,21 +56,31 @@ export default function TabItem({ session, isActive, onClick, onClose }: TabItem
         <>
           <div className="flex items-start justify-between gap-1">
             <span
-              className={`text-[13px] font-medium truncate ${isActive ? 'text-[#e4e4e7]' : 'text-white/50'}`}
+              className="text-[13px] font-medium truncate"
+              style={{ color: isActive ? uiColors.textPrimary : uiColors.textMuted }}
               title={session.directory}
             >
               {displayPath}
             </span>
             <button
               onClick={(e) => { e.stopPropagation(); setConfirming(true); }}
-              className="shrink-0 text-white/0 group-hover:text-white/25 hover:!text-white/50 text-[10px] w-[18px] h-[18px] flex items-center justify-center rounded transition-all"
+              className="shrink-0 text-[10px] w-[18px] h-[18px] flex items-center justify-center rounded transition-all opacity-0 group-hover:opacity-100"
+              style={{ color: uiColors.textDim }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = uiColors.textMuted; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = uiColors.textDim; }}
             >
               ×
             </button>
           </div>
-          <div className={`flex items-center gap-1.5 mt-1 text-[11px] ${isActive ? 'text-white/35' : 'text-white/20'}`}>
-            <span className={`inline-block w-1.5 h-1.5 rounded-full ${session.branch ? 'bg-amber-500' : 'bg-white/20'}`} />
-            <span className="uppercase tracking-wide text-[10px]">
+          <div className="flex items-center gap-1.5 mt-1 text-[11px]">
+            <span
+              className="inline-block w-1.5 h-1.5 rounded-full"
+              style={{ background: session.branch ? uiColors.branchDot : uiColors.textDim }}
+            />
+            <span
+              className="uppercase tracking-wide text-[10px]"
+              style={{ color: isActive ? uiColors.textMuted : uiColors.textDim }}
+            >
               {session.branch || 'not git tracked'}
             </span>
           </div>

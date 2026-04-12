@@ -7,6 +7,28 @@ export interface TerminalConfig {
   theme: ITheme;
 }
 
+// UI colors derived from the terminal theme for consistent styling
+export const uiColors = {
+  // Page and sidebar backgrounds — darker shades of the terminal background
+  pageBg: '#2e3440',
+  sidebarBg: '#2b303b',
+  sidebarBorder: '#3b4252',
+  // Text
+  textPrimary: '#d8dee9',
+  textMuted: '#7b88a1',
+  textDim: '#4c566a',
+  // Interactive states
+  activeBg: '#3b4252',
+  activeBorder: '#434c5e',
+  hoverBg: '#353b48',
+  // Accents — pulled from terminal ANSI colors
+  accent: '#81a1c1',
+  branchDot: '#ebcb8b',
+  dangerBg: 'rgba(191, 97, 106, 0.2)',
+  dangerText: '#bf616a',
+  dangerHoverBg: 'rgba(191, 97, 106, 0.3)',
+};
+
 export const terminalConfig: TerminalConfig = {
   fontSize: 14,
   fontFamily: "'MesloLGM Nerd Font', 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace",

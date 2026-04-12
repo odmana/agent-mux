@@ -3,6 +3,7 @@ import type { Session } from './types';
 import Sidebar from './components/Sidebar';
 import TerminalPane from './components/TerminalPane';
 import DirectoryPicker from './components/DirectoryPicker';
+import { uiColors } from './terminal-config';
 
 export default function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -57,7 +58,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-full bg-[#0f1115] flex">
+    <div className="h-full flex" style={{ background: uiColors.pageBg, color: uiColors.textPrimary }}>
         <Sidebar
           sessions={sessions}
           activeId={activeId}
@@ -69,7 +70,7 @@ export default function App() {
 
         <div className="flex-1 relative min-w-0">
             {sessions.length === 0 && !showPicker && (
-              <div className="absolute inset-0 flex items-center justify-center text-white/20 text-sm">
+              <div className="absolute inset-0 flex items-center justify-center text-sm" style={{ color: uiColors.textDim }}>
                 Open a tab to get started
               </div>
             )}

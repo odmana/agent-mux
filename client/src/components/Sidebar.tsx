@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Session } from '../types';
 import TabItem from './TabItem';
+import { uiColors } from '../terminal-config';
 
 interface SidebarProps {
   sessions: Session[];
@@ -45,9 +46,15 @@ export default function Sidebar({
   };
 
   return (
-    <div className="w-60 min-w-60 bg-white/[0.02] border-r border-white/[0.06] flex flex-col">
+    <div
+      className="w-60 min-w-60 flex flex-col"
+      style={{ background: uiColors.sidebarBg, borderRight: `1px solid ${uiColors.sidebarBorder}` }}
+    >
       <div className="px-4 pt-5 pb-2">
-        <h2 className="text-[11px] font-semibold tracking-[0.12em] uppercase text-white/25">
+        <h2
+          className="text-[11px] font-semibold tracking-[0.12em] uppercase"
+          style={{ color: uiColors.textDim }}
+        >
           Terminal Sessions
         </h2>
       </div>
@@ -63,11 +70,14 @@ export default function Sidebar({
             onDragEnd={handleDragEnd}
             className={`transition-opacity ${
               dragIndex === index ? 'opacity-30' : ''
-            } ${
-              overIndex === index && dragIndex !== index
-                ? 'border-t-2 border-t-blue-400/50'
-                : 'border-t-2 border-t-transparent'
             }`}
+            style={{
+              borderTop: `2px solid ${
+                overIndex === index && dragIndex !== index
+                  ? uiColors.accent
+                  : 'transparent'
+              }`,
+            }}
           >
             <TabItem
               session={session}
@@ -82,7 +92,19 @@ export default function Sidebar({
       <div className="p-2">
         <button
           onClick={onNewTab}
-          className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg text-sm text-white/30 border border-dashed border-white/[0.08] hover:border-white/20 hover:text-white/50 hover:bg-white/[0.03] transition-all"
+          className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg text-sm transition-all"
+          style={{
+            color: uiColors.textDim,
+            border: `1px dashed ${uiColors.sidebarBorder}`,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = uiColors.textMuted;
+            e.currentTarget.style.color = uiColors.textMuted;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = uiColors.sidebarBorder;
+            e.currentTarget.style.color = uiColors.textDim;
+          }}
         >
           <span className="text-base leading-none">+</span>
           New session
