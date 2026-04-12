@@ -1,4 +1,5 @@
 import { readFileSync, existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { platform } from 'node:os';
 
 export interface Config {
@@ -17,10 +18,11 @@ export function loadConfig(): Config {
     port: 3000,
   };
 
-  if (!existsSync('config.json')) return defaults;
+  const configPath = resolve(import.meta.dirname, '../config.json');
+  if (!existsSync(configPath)) return defaults;
 
   try {
-    const raw = JSON.parse(readFileSync('config.json', 'utf-8'));
+    const raw = JSON.parse(readFileSync(configPath, 'utf-8'));
     return {
       shell: typeof raw.shell === 'string' ? raw.shell : defaults.shell,
       port: typeof raw.port === 'number' ? raw.port : defaults.port,

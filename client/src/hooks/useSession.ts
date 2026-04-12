@@ -67,6 +67,11 @@ export function useSession(
 
     return () => {
       observer.disconnect();
+      // Null out handlers before closing to prevent writes to a disposed terminal
+      ws.onopen = null;
+      ws.onmessage = null;
+      ws.onerror = null;
+      ws.onclose = null;
       ws.close();
       terminal.dispose();
       terminalRef.current = null;

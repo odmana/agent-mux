@@ -27,6 +27,9 @@ app.get('{*path}', (_req, res, next) => {
 const server = createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 
+// Track active WebSocket per session to prevent duplicates
+const activeConnections = new Map<string, WebSocket>();
+
 // Handle WebSocket upgrade on /ws/:sessionId
 server.on('upgrade', (req, socket, head) => {
   const match = req.url?.match(/^\/ws\/(.+)$/);
@@ -47,6 +50,13 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 wss.on('connection', (ws: WebSocket, _req: IncomingMessage, session: Session) => {
+  // Close any existing connection for this session
+  const existing = activeConnections.get(session.id);
+  if (existing && existing.readyState === WebSocket.OPEN) {
+    existing.close();
+  }
+  activeConnections.set(session.id, ws);
+
   // Replay scrollback buffer on reconnect
   if (session.scrollback.length > 0) {
     ws.send(session.scrollback);
@@ -76,7 +86,11 @@ wss.on('connection', (ws: WebSocket, _req: IncomingMessage, session: Session) =>
       }
     }
 
-    session.pty.write(str);
+    try {
+      session.pty.write(str);
+    } catch {
+      // PTY may have already exited
+    }
   });
 
   // Handle PTY exit (user types exit, process crashes, etc.)
@@ -87,6 +101,9 @@ wss.on('connection', (ws: WebSocket, _req: IncomingMessage, session: Session) =>
   ws.on('close', () => {
     dataHandler.dispose();
     exitHandler.dispose();
+    if (activeConnections.get(session.id) === ws) {
+      activeConnections.delete(session.id);
+    }
   });
 
   ws.on('error', (err) => {

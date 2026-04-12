@@ -8,7 +8,7 @@ import {
 } from '../src/sessions.js';
 
 vi.mock('../src/pty-manager.js', () => ({
-  createPty: () => ({ pid: 1, onData: vi.fn(), write: vi.fn(), resize: vi.fn(), kill: vi.fn() }),
+  createPty: () => ({ pid: 1, onData: vi.fn(() => ({ dispose: vi.fn() })), onExit: vi.fn(() => ({ dispose: vi.fn() })), write: vi.fn(), resize: vi.fn(), kill: vi.fn() }),
   resizePty: vi.fn(),
   killPty: vi.fn(),
 }));

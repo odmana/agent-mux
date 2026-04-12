@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { execSync } from 'node:child_process';
-import { type IPty } from 'node-pty';
+import { type IPty, type IDisposable } from 'node-pty';
 import { createPty, killPty } from './pty-manager.js';
 
 const SCROLLBACK_LIMIT = 100 * 1024; // 100KB
@@ -11,6 +11,7 @@ export interface Session {
   branch: string;
   pty: IPty;
   scrollback: string;
+  scrollbackDisposable: IDisposable;
 }
 
 const sessions = new Map<string, Session>();
@@ -23,12 +24,18 @@ export function createSession(directory: string, shell: string): Session {
     branch: getGitBranch(directory),
     pty,
     scrollback: '',
+    scrollbackDisposable: null!,
   };
-  pty.onData((data: string) => {
+  session.scrollbackDisposable = pty.onData((data: string) => {
     session.scrollback += data;
     if (session.scrollback.length > SCROLLBACK_LIMIT) {
       session.scrollback = session.scrollback.slice(-SCROLLBACK_LIMIT);
     }
+  });
+  // Clean up zombie sessions when PTY exits without an active WebSocket
+  pty.onExit(() => {
+    sessions.delete(session.id);
+    session.scrollbackDisposable.dispose();
   });
   sessions.set(session.id, session);
   return session;
@@ -45,12 +52,14 @@ export function getAllSessions(): Session[] {
 export function deleteSession(id: string): void {
   const session = sessions.get(id);
   if (!session) return;
+  session.scrollbackDisposable.dispose();
   killPty(session.pty);
   sessions.delete(id);
 }
 
 export function killAllSessions(): void {
   for (const session of sessions.values()) {
+    session.scrollbackDisposable.dispose();
     killPty(session.pty);
   }
   sessions.clear();

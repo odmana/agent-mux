@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Session } from './types';
 import Sidebar from './components/Sidebar';
 import TerminalPane from './components/TerminalPane';
@@ -8,6 +8,8 @@ export default function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
+  const activeIdRef = useRef(activeId);
+  activeIdRef.current = activeId;
 
   useEffect(() => {
     fetch('/api/sessions')
@@ -47,7 +49,7 @@ export default function App() {
     if (!res.ok) return;
     setSessions((prev) => {
       const remaining = prev.filter((s) => s.id !== id);
-      if (activeId === id) {
+      if (activeIdRef.current === id) {
         setActiveId(remaining.length > 0 ? remaining[0].id : null);
       }
       return remaining;

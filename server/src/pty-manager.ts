@@ -20,5 +20,9 @@ export function resizePty(pty: IPty, cols: number, rows: number): void {
 }
 
 export function killPty(pty: IPty): void {
-  pty.kill();
+  try {
+    pty.kill();
+  } catch {
+    // PTY process may have already exited
+  }
 }
