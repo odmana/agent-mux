@@ -6,13 +6,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "build": "tsc",
-    "test": "vitest run --passWithNoTests",
-    "postinstall": "chmod +x ./node_modules/.pnpm/node-pty@*/node_modules/node-pty/prebuilds/darwin-*/spawn-helper 2>/dev/null || true"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "node-pty"
-    ]
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "express": "5.2.1",
