@@ -114,8 +114,8 @@ wss.on('connection', (ws: WebSocket, _req: IncomingMessage, session: Session) =>
   });
 });
 
-server.listen(config.port, () => {
-  console.log(`agent-mux listening on http://localhost:${config.port}`);
+server.listen(config.serverPort, () => {
+  console.log(`agent-mux listening on http://localhost:${config.serverPort}`);
 
   startNotificationWatcher({
     onStateChange: (sessionId, state) => {

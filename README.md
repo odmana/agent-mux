@@ -24,17 +24,19 @@ Opens at http://localhost:3000. The client dev server proxies API and WebSocket 
 
 ## Configuration
 
-Optional `server/config.json`:
+Optional `config.json` in the repo root (gitignored):
 
 ```json
 {
   "shell": "/bin/zsh",
-  "port": 3000
+  "serverPort": 3000,
+  "clientPort": 5173
 }
 ```
 
 - `shell` -- path to shell binary. Defaults to `$SHELL` or `/bin/sh`.
-- `port` -- server port. Defaults to `3000`.
+- `serverPort` -- server port. Defaults to `3000`.
+- `clientPort` -- Vite dev server port. Defaults to `5173`.
 
 ## Notification Dots
 

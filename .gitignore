@@ -3,3 +3,4 @@ dist/
 .pnpm-store/
 .claude/settings.local.json
 .superpowers
+config.json
