@@ -1,16 +1,17 @@
 import { useRef } from 'react';
-import type { Session } from '../types';
+import type { Session, NotificationState } from '../types';
 import { useSession } from '../hooks/useSession';
 import { terminalConfig } from '../terminal-config';
 
 interface TerminalPaneProps {
   session: Session;
   isActive: boolean;
+  onNotification?: (sessionId: string, state: NotificationState) => void;
 }
 
-export default function TerminalPane({ session, isActive }: TerminalPaneProps) {
+export default function TerminalPane({ session, isActive, onNotification }: TerminalPaneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  useSession(session.id, containerRef, isActive);
+  useSession(session.id, containerRef, isActive, onNotification);
 
   return (
     <div

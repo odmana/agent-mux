@@ -6,6 +6,7 @@ import { loadConfig } from './config.js';
 import { createRouter } from './routes.js';
 import { getSession, killAllSessions, type Session } from './sessions.js';
 import { resizePty } from './pty-manager.js';
+import { startNotificationWatcher, stopNotificationWatcher, clearIfPermission } from './notification-watcher.js';
 
 const config = loadConfig();
 const app = express();
@@ -67,6 +68,8 @@ wss.on('connection', (ws: WebSocket, _req: IncomingMessage, session: Session) =>
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(data);
     }
+    // Clear permission notification when PTY produces output (permission was granted)
+    clearIfPermission(session.id);
   });
 
   // Client → PTY
@@ -113,10 +116,20 @@ wss.on('connection', (ws: WebSocket, _req: IncomingMessage, session: Session) =>
 
 server.listen(config.port, () => {
   console.log(`agent-mux listening on http://localhost:${config.port}`);
+
+  startNotificationWatcher({
+    onStateChange: (sessionId, state) => {
+      const ws = activeConnections.get(sessionId);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'notification', sessionId, state }));
+      }
+    },
+  });
 });
 
 // Cleanup
 function cleanup() {
+  stopNotificationWatcher();
   killAllSessions();
   server.close();
 }

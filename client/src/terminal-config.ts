@@ -23,10 +23,12 @@ export const uiColors = {
   hoverBg: '#353b48',
   // Accents — pulled from terminal ANSI colors
   accent: '#81a1c1',
-  branchDot: '#ebcb8b',
   dangerBg: 'rgba(191, 97, 106, 0.2)',
   dangerText: '#bf616a',
   dangerHoverBg: 'rgba(191, 97, 106, 0.3)',
+  // Notification dots
+  notificationIdle: '#81a1c1',
+  notificationPermission: '#bf616a',
 };
 
 export const terminalConfig: TerminalConfig = {

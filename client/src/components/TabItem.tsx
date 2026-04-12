@@ -1,17 +1,26 @@
 import { useState } from 'react';
-import type { Session } from '../types';
+import type { Session, NotificationState } from '../types';
 import { uiColors } from '../terminal-config';
 
 interface TabItemProps {
   session: Session;
   isActive: boolean;
+  notificationState: NotificationState;
   onClick: () => void;
   onClose: () => void;
 }
 
-export default function TabItem({ session, isActive, onClick, onClose }: TabItemProps) {
+export default function TabItem({ session, isActive, notificationState, onClick, onClose }: TabItemProps) {
   const [confirming, setConfirming] = useState(false);
   const displayPath = session.directory.replace(/^\/Users\/\w+/, '~');
+
+  // Blue dots: background tabs only. Red dots: all tabs.
+  const showDot =
+    (notificationState === 'idle' && !isActive) ||
+    notificationState === 'permission';
+  const dotColor = notificationState === 'permission'
+    ? uiColors.notificationPermission
+    : uiColors.notificationIdle;
 
   return (
     <div
@@ -55,13 +64,25 @@ export default function TabItem({ session, isActive, onClick, onClose }: TabItem
       ) : (
         <>
           <div className="flex items-start justify-between gap-1">
-            <span
-              className="text-[13px] font-medium truncate"
-              style={{ color: isActive ? uiColors.textPrimary : uiColors.textMuted }}
-              title={session.directory}
-            >
-              {displayPath}
-            </span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              {showDot && (
+                <span
+                  className="shrink-0 inline-block w-2 h-2 rounded-full"
+                  style={{
+                    background: dotColor,
+                    boxShadow: `0 0 6px ${dotColor}, 0 0 2px ${dotColor}`,
+                    animation: notificationState === 'permission' ? 'pulse-glow 2s ease-in-out infinite' : undefined,
+                  }}
+                />
+              )}
+              <span
+                className="text-[13px] font-medium truncate"
+                style={{ color: isActive ? uiColors.textPrimary : uiColors.textMuted }}
+                title={session.directory}
+              >
+                {displayPath}
+              </span>
+            </div>
             <button
               onClick={(e) => { e.stopPropagation(); setConfirming(true); }}
               className="shrink-0 text-[10px] w-[18px] h-[18px] flex items-center justify-center rounded transition-all opacity-0 group-hover:opacity-100"
@@ -72,11 +93,20 @@ export default function TabItem({ session, isActive, onClick, onClose }: TabItem
               ×
             </button>
           </div>
-          <div className="flex items-center gap-1.5 mt-1 text-[11px]">
-            <span
-              className="inline-block w-1.5 h-1.5 rounded-full"
-              style={{ background: session.branch ? uiColors.branchDot : uiColors.textDim }}
-            />
+          <div className="flex items-center gap-1 mt-1">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 16 16"
+              fill="none"
+              style={{ color: uiColors.textDim, flexShrink: 0 }}
+            >
+              <circle cx="4" cy="4" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+              <circle cx="4" cy="12" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+              <circle cx="12" cy="4" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+              <path d="M4 5.5V10.5" stroke="currentColor" strokeWidth="1.2" />
+              <path d="M4 5.5C4 8 6 8 12 5.5" stroke="currentColor" strokeWidth="1.2" fill="none" />
+            </svg>
             <span
               className="uppercase tracking-wide text-[10px]"
               style={{ color: isActive ? uiColors.textMuted : uiColors.textDim }}

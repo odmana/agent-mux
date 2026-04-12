@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import type { Session } from './types';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import type { Session, NotificationState } from './types';
 import Sidebar from './components/Sidebar';
 import TerminalPane from './components/TerminalPane';
 import DirectoryPicker from './components/DirectoryPicker';
@@ -9,6 +9,7 @@ export default function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
+  const [notificationStates, setNotificationStates] = useState<Record<string, NotificationState>>({});
   const activeIdRef = useRef(activeId);
   activeIdRef.current = activeId;
 
@@ -45,6 +46,21 @@ export default function App() {
     setActiveId(session.id);
   };
 
+  const handleNotification = useCallback((sessionId: string, state: NotificationState) => {
+    setNotificationStates(prev => ({ ...prev, [sessionId]: state }));
+  }, []);
+
+  const handleSelectSession = useCallback((id: string) => {
+    setActiveId(id);
+    // Clear blue (idle) dots when switching to a tab
+    setNotificationStates(prev => {
+      if (prev[id] === 'idle') {
+        return { ...prev, [id]: 'none' };
+      }
+      return prev;
+    });
+  }, []);
+
   const handleCloseSession = async (id: string) => {
     const res = await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
     if (!res.ok) return;
@@ -55,6 +71,11 @@ export default function App() {
       }
       return remaining;
     });
+    setNotificationStates(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
   };
 
   return (
@@ -62,7 +83,8 @@ export default function App() {
         <Sidebar
           sessions={sessions}
           activeId={activeId}
-          onSelectSession={setActiveId}
+          notificationStates={notificationStates}
+          onSelectSession={handleSelectSession}
           onCloseSession={handleCloseSession}
           onReorderSessions={setSessions}
           onNewTab={() => setShowPicker(true)}
@@ -80,6 +102,7 @@ export default function App() {
                 key={session.id}
                 session={session}
                 isActive={session.id === activeId}
+                onNotification={handleNotification}
               />
             ))}
 

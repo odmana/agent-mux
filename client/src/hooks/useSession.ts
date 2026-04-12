@@ -2,15 +2,19 @@ import { useEffect, useRef } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { terminalConfig } from '../terminal-config';
+import type { NotificationState } from '../types';
 
 export function useSession(
   sessionId: string,
   containerRef: React.RefObject<HTMLDivElement | null>,
   isActive: boolean,
+  onNotification?: (sessionId: string, state: NotificationState) => void,
 ) {
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const onNotificationRef = useRef(onNotification);
+  onNotificationRef.current = onNotification;
 
   // Create terminal and WebSocket on mount
   useEffect(() => {
@@ -38,7 +42,19 @@ export function useSession(
     };
 
     ws.onmessage = (event) => {
-      terminal.write(event.data);
+      const data = event.data;
+      if (typeof data === 'string' && data.startsWith('{')) {
+        try {
+          const msg = JSON.parse(data);
+          if (msg.type === 'notification' && onNotificationRef.current) {
+            onNotificationRef.current(msg.sessionId, msg.state);
+            return;
+          }
+        } catch {
+          // Not valid JSON — treat as terminal data
+        }
+      }
+      terminal.write(data);
     };
 
     ws.onerror = () => {

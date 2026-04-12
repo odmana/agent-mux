@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import type { Session } from '../types';
+import type { Session, NotificationState } from '../types';
 import TabItem from './TabItem';
 import { uiColors } from '../terminal-config';
 
 interface SidebarProps {
   sessions: Session[];
   activeId: string | null;
+  notificationStates: Record<string, NotificationState>;
   onSelectSession: (id: string) => void;
   onCloseSession: (id: string) => void;
   onReorderSessions: (sessions: Session[]) => void;
@@ -15,6 +16,7 @@ interface SidebarProps {
 export default function Sidebar({
   sessions,
   activeId,
+  notificationStates,
   onSelectSession,
   onCloseSession,
   onReorderSessions,
@@ -82,6 +84,7 @@ export default function Sidebar({
             <TabItem
               session={session}
               isActive={session.id === activeId}
+              notificationState={notificationStates[session.id] ?? 'none'}
               onClick={() => onSelectSession(session.id)}
               onClose={() => onCloseSession(session.id)}
             />
