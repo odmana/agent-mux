@@ -3,11 +3,14 @@ import { execSync } from 'node:child_process';
 import { type IPty } from 'node-pty';
 import { createPty, killPty } from './pty-manager.js';
 
+const SCROLLBACK_LIMIT = 100 * 1024; // 100KB
+
 export interface Session {
   id: string;
   directory: string;
   branch: string;
   pty: IPty;
+  scrollback: string;
 }
 
 const sessions = new Map<string, Session>();
@@ -19,7 +22,14 @@ export function createSession(directory: string, shell: string): Session {
     directory,
     branch: getGitBranch(directory),
     pty,
+    scrollback: '',
   };
+  pty.onData((data: string) => {
+    session.scrollback += data;
+    if (session.scrollback.length > SCROLLBACK_LIMIT) {
+      session.scrollback = session.scrollback.slice(-SCROLLBACK_LIMIT);
+    }
+  });
   sessions.set(session.id, session);
   return session;
 }

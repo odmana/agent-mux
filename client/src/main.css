@@ -5,4 +5,7 @@ html, body, #root {
   height: 100%;
   margin: 0;
   overflow: hidden;
+  background: #0f1115;
+  color: #e4e4e7;
+  font-family: system-ui, -apple-system, sans-serif;
 }

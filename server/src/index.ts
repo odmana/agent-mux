@@ -47,6 +47,11 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 wss.on('connection', (ws: WebSocket, _req: IncomingMessage, session: Session) => {
+  // Replay scrollback buffer on reconnect
+  if (session.scrollback.length > 0) {
+    ws.send(session.scrollback);
+  }
+
   // PTY → client
   const dataHandler = session.pty.onData((data: string) => {
     if (ws.readyState === WebSocket.OPEN) {

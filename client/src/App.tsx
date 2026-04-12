@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Session } from './types';
 import Sidebar from './components/Sidebar';
 import TerminalPane from './components/TerminalPane';
@@ -8,6 +8,26 @@ export default function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/sessions')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((existing: Session[]) => {
+        if (existing.length > 0) {
+          setSessions(existing);
+          setActiveId(existing[0].id);
+        }
+      });
+  }, []);
+
+  useEffect(() => {
+    if (sessions.length === 0) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [sessions.length]);
 
   const handleNewSession = async (directory: string) => {
     setShowPicker(false);
@@ -35,37 +55,38 @@ export default function App() {
   };
 
   return (
-    <div className="h-full flex bg-[#0c0c0c] text-[#e4e4e7] font-sans">
-      <Sidebar
-        sessions={sessions}
-        activeId={activeId}
-        onSelectSession={setActiveId}
-        onCloseSession={handleCloseSession}
-        onNewTab={() => setShowPicker(true)}
-      />
+    <div className="h-full bg-[#0f1115] flex">
+        <Sidebar
+          sessions={sessions}
+          activeId={activeId}
+          onSelectSession={setActiveId}
+          onCloseSession={handleCloseSession}
+          onReorderSessions={setSessions}
+          onNewTab={() => setShowPicker(true)}
+        />
 
-      <div className="flex-1 relative">
-        {sessions.length === 0 && !showPicker && (
-          <div className="absolute inset-0 flex items-center justify-center text-white/20 text-sm">
-            Open a tab to get started
-          </div>
-        )}
+        <div className="flex-1 relative min-w-0">
+            {sessions.length === 0 && !showPicker && (
+              <div className="absolute inset-0 flex items-center justify-center text-white/20 text-sm">
+                Open a tab to get started
+              </div>
+            )}
 
-        {sessions.map((session) => (
-          <TerminalPane
-            key={session.id}
-            session={session}
-            isActive={session.id === activeId}
-          />
-        ))}
+            {sessions.map((session) => (
+              <TerminalPane
+                key={session.id}
+                session={session}
+                isActive={session.id === activeId}
+              />
+            ))}
 
-        {showPicker && (
-          <DirectoryPicker
-            onConfirm={handleNewSession}
-            onCancel={() => setShowPicker(false)}
-          />
-        )}
-      </div>
+            {showPicker && (
+              <DirectoryPicker
+                onConfirm={handleNewSession}
+                onCancel={() => setShowPicker(false)}
+              />
+            )}
+        </div>
     </div>
   );
 }
