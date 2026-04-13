@@ -2,6 +2,8 @@
 
 A browser-based terminal multiplexer for managing multiple AI agent sessions. Provides a sidebar with session tabs and a full terminal pane powered by xterm.js. Purpose-built for running concurrent Claude Code sessions across different projects.
 
+![Agent Mux](docs/screenshot.png)
+
 ## Prerequisites
 
 - Node.js 22+ (managed via [mise](https://mise.jdx.dev/))
@@ -21,6 +23,19 @@ pnpm dev
 ```
 
 Opens at http://localhost:3000. The client dev server proxies API and WebSocket requests to the backend.
+
+For a cleaner experience, you can open it in a control-less browser window (no address bar, tabs, or bookmarks bar):
+
+```bash
+# Windows
+chrome.exe --app=http://localhost:3000
+
+# macOS
+open -a "Google Chrome" --args --app=http://localhost:3000
+
+# Linux
+google-chrome --app=http://localhost:3000
+```
 
 ## Configuration
 
