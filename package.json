@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "pnpm --parallel -r run dev",
+    "dev": "pnpm -C client build && pnpm -C server build && pnpm -C electron dev",
+    "dev:browser": "pnpm --parallel --filter=agent-mux-client --filter=agent-mux-server run dev",
+    "build:electron": "pnpm -C client build && pnpm -C server build && pnpm -C electron build && pnpm -C electron bundle",
+    "dist": "pnpm run build:electron && pnpm -C electron dist",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "fmt": "oxfmt .",
@@ -30,7 +33,9 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "node-pty",
-      "simple-git-hooks"
+      "simple-git-hooks",
+      "electron",
+      "esbuild"
     ]
   }
 }

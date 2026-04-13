@@ -13,14 +13,14 @@ function defaultShell(): string {
   return process.env.SHELL || '/bin/sh';
 }
 
-export function loadConfig(): Config {
+export function loadConfig(configPath?: string): Config {
   const defaults: Config = {
     shell: defaultShell(),
     serverPort: 3000,
     clientPort: 5173,
   };
 
-  const configPath = resolve(import.meta.dirname, '../../config.json');
+  configPath ??= resolve(import.meta.dirname, '../../config.json');
   if (!existsSync(configPath)) return defaults;
 
   try {

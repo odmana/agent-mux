@@ -1,6 +1,10 @@
+<p align="center">
+  <img src="electron/build/icon.png" alt="Agent Mux" width="128" height="128">
+</p>
+
 # Agent Mux
 
-A browser-based terminal multiplexer for managing multiple AI agent sessions. Provides a sidebar with session tabs and a full terminal pane powered by xterm.js. Purpose-built for running concurrent Claude Code sessions across different projects.
+A terminal multiplexer for managing multiple AI agent sessions. Provides a sidebar with session tabs and a full terminal pane powered by xterm.js. Purpose-built for running concurrent Claude Code sessions across different projects. Runs as a standalone Electron desktop app or in the browser.
 
 ![Agent Mux](docs/screenshot.png)
 
@@ -22,24 +26,33 @@ pnpm install
 pnpm dev
 ```
 
-Opens at http://localhost:3000. The client dev server proxies API and WebSocket requests to the backend.
+Opens a standalone Electron desktop window.
 
-For a cleaner experience, you can open it in a control-less browser window (no address bar, tabs, or bookmarks bar):
+### Browser Mode
 
 ```bash
-# Windows
-chrome.exe --app=http://localhost:3000
-
-# macOS
-open -a "Google Chrome" --args --app=http://localhost:3000
-
-# Linux
-google-chrome --app=http://localhost:3000
+pnpm dev:browser
 ```
+
+Starts the server and Vite dev server separately. Opens at http://localhost:3000 with hot module replacement.
+
+### Building the Executable
+
+```bash
+pnpm dist
+```
+
+Produces a portable executable in `electron/release/`:
+
+- **Windows**: `win-unpacked/agent-mux.exe`
+- **macOS**: `mac-unpacked/agent-mux.app`
+- **Linux**: `linux-unpacked/agent-mux`
+
+The build skips native module recompilation (`npmRebuild: false`) because node-pty's prebuilds for Node 22 are ABI-compatible with Electron 41's embedded Node 22. If you upgrade Electron to a version that ships a different Node ABI, you'll need Python installed for `node-gyp` to recompile node-pty. Install it via `mise use python@3` and remove `npmRebuild: false` from `electron/package.json`.
 
 ## Configuration
 
-Optional `config.json` in the repo root (gitignored):
+Optional `config.json` (gitignored):
 
 ```json
 {
@@ -51,7 +64,17 @@ Optional `config.json` in the repo root (gitignored):
 
 - `shell` -- path to shell binary. Defaults to `$SHELL` or `/bin/sh`.
 - `serverPort` -- server port. Defaults to `3000`.
-- `clientPort` -- Vite dev server port. Defaults to `5173`.
+- `clientPort` -- Vite dev server port (browser mode only). Defaults to `5173`.
+
+### Config file location
+
+- **Development** (`pnpm dev` / `pnpm dev:browser`): `config.json` in the repo root.
+- **Packaged exe**: `config.json` in the Electron user data directory:
+  - **Windows**: `%APPDATA%\agent-mux-electron\config.json`
+  - **macOS**: `~/Library/Application Support/agent-mux-electron/config.json`
+  - **Linux**: `~/.config/agent-mux-electron/config.json`
+
+If the file doesn't exist, defaults are used.
 
 ## Keyboard Shortcuts
 
@@ -82,13 +105,17 @@ Notification dots require hooks in `~/.claude/settings.json`. On first launch, a
 agent-mux/
 ├── server/                        # Express + WebSocket backend
 │   └── src/
-│       ├── index.ts               # HTTP/WS server, PTY data forwarding
+│       ├── server.ts              # Embeddable startServer() entry point
+│       ├── index.ts               # Standalone CLI wrapper
 │       ├── config.ts              # Optional config.json loader
 │       ├── sessions.ts            # Session state (PTY, scrollback, git branch)
 │       ├── routes.ts              # REST API endpoints
 │       ├── pty-manager.ts         # node-pty wrapper
 │       ├── hooks-setup.ts         # Hook detection and auto-installation
 │       └── notification-watcher.ts # Polls /tmp for hook state files
+├── electron/                      # Electron desktop app wrapper
+│   └── src/
+│       └── main.ts                # Main process (window, server lifecycle)
 ├── client/                        # React + Tailwind + xterm.js frontend
 │   └── src/
 │       ├── App.tsx                # Root component, session + notification state
