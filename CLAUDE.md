@@ -7,4 +7,5 @@
 ## Dependencies
 
 - Use `pnpm` to manage node dependencies.
+- Use `pnpm` instead of `npx` to run scripts and tools (e.g. `pnpm tsc` not `npx tsc`).
 - Install exact versions in package.json (no `^` or `~` prefixes).
