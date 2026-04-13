@@ -49,7 +49,9 @@ Blue dots clear when you switch to the tab. Red dots clear only when Claude resu
 
 ### Required Hook Setup
 
-Notification dots require hooks in `~/.claude/settings.json`. Add these entries to the `hooks.Notification` array:
+Notification dots require hooks in `~/.claude/settings.json`. Add these entries to the `hooks.Notification` array.
+
+**macOS / Linux:**
 
 ```json
 {
@@ -70,6 +72,35 @@ Notification dots require hooks in `~/.claude/settings.json`. Add these entries 
           {
             "type": "command",
             "command": "echo \"permission $(pwd)\" > \"/tmp/agent-mux-$$.state\" # agent-mux"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Windows (bash shell):**
+
+```json
+{
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"idle $(pwd)\" > \"$TEMP/agent-mux-$$.state\" # agent-mux"
+          }
+        ]
+      },
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"permission $(pwd)\" > \"$TEMP/agent-mux-$$.state\" # agent-mux"
           }
         ]
       }

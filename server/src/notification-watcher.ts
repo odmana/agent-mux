@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync, statSync, unlinkSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import { getAllSessions } from './sessions.js';
 
 export type NotificationState = 'none' | 'idle' | 'permission';
@@ -8,7 +9,7 @@ interface WatcherOptions {
   onStateChange: (sessionId: string, state: NotificationState) => void;
 }
 
-const TMP_DIR = '/tmp';
+const TMP_DIR = tmpdir();
 const FILE_PATTERN = /^agent-mux-(\d+)\.state$/;
 const POLL_INTERVAL_MS = 500;
 const STALE_FILE_MAX_AGE_MS = 60_000; // Delete unmatched files older than 60s
@@ -19,8 +20,19 @@ let onStateChange: WatcherOptions['onStateChange'] | null = null;
 // Current notification state per session
 const states = new Map<string, NotificationState>();
 
+/**
+ * Normalize a path for cross-platform comparison.
+ * Handles MSYS-style paths (/c/Users/...) vs Windows paths (C:\Users\...).
+ */
 function normalizePath(p: string): string {
-  return p.replace(/\/+$/, '');
+  let normalized = p.replace(/\/+$/, '').replace(/\\+$/, '');
+  // Convert backslashes to forward slashes
+  normalized = normalized.replace(/\\/g, '/');
+  // Convert MSYS-style /c/... to C:/...
+  normalized = normalized.replace(/^\/([a-zA-Z])\//, (_, drive: string) => `${drive.toUpperCase()}:/`);
+  // Uppercase drive letter for consistent comparison
+  normalized = normalized.replace(/^([a-zA-Z]):/, (_, drive: string) => `${drive.toUpperCase()}:`);
+  return normalized;
 }
 
 function parseStateFile(filePath: string): { event: 'idle' | 'permission'; directory: string } | null {
