@@ -5,6 +5,7 @@ import TerminalPane from './components/TerminalPane';
 import DirectoryPicker from './components/DirectoryPicker';
 import HooksBanner from './components/HooksBanner';
 import { uiColors } from './terminal-config';
+import Kbd from './components/Kbd';
 
 export default function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -139,8 +140,13 @@ export default function App() {
             <HooksBanner />
 
             {sessions.length === 0 && !showPicker && (
-              <div className="absolute inset-0 flex items-center justify-center text-sm" style={{ color: uiColors.textDim }}>
-                Open a tab to get started
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-sm" style={{ color: uiColors.textDim }}>
+                <span>Open a tab to get started</span>
+                <span className="flex items-center gap-1 mt-1">
+                  <Kbd>{navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'}</Kbd>
+                  <Kbd>Shift</Kbd>
+                  <Kbd>N</Kbd>
+                </span>
               </div>
             )}
 
