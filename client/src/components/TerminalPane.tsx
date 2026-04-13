@@ -7,11 +7,12 @@ interface TerminalPaneProps {
   session: Session;
   isActive: boolean;
   onNotification?: (sessionId: string, state: NotificationState) => void;
+  onBranchUpdate?: (sessionId: string, branch: string) => void;
 }
 
-export default function TerminalPane({ session, isActive, onNotification }: TerminalPaneProps) {
+export default function TerminalPane({ session, isActive, onNotification, onBranchUpdate }: TerminalPaneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  useSession(session.id, containerRef, isActive, onNotification);
+  useSession(session.id, containerRef, isActive, onNotification, onBranchUpdate);
 
   return (
     <div

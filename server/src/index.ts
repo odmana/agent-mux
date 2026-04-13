@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { resolve } from 'node:path';
 import { loadConfig } from './config.js';
 import { createRouter } from './routes.js';
-import { getSession, killAllSessions, type Session } from './sessions.js';
+import { getSession, killAllSessions, onBranchChange, type Session } from './sessions.js';
 import { resizePty } from './pty-manager.js';
 import { startNotificationWatcher, stopNotificationWatcher, clearIfPermission } from './notification-watcher.js';
 
@@ -116,6 +116,13 @@ wss.on('connection', (ws: WebSocket, _req: IncomingMessage, session: Session) =>
 
 server.listen(config.serverPort, () => {
   console.log(`agent-mux listening on http://localhost:${config.serverPort}`);
+
+  onBranchChange((sessionId, branch) => {
+    const ws = activeConnections.get(sessionId);
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'branch_update', sessionId, branch }));
+    }
+  });
 
   startNotificationWatcher({
     onStateChange: (sessionId, state) => {

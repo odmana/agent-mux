@@ -9,12 +9,15 @@ export function useSession(
   containerRef: React.RefObject<HTMLDivElement | null>,
   isActive: boolean,
   onNotification?: (sessionId: string, state: NotificationState) => void,
+  onBranchUpdate?: (sessionId: string, branch: string) => void,
 ) {
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const onNotificationRef = useRef(onNotification);
   onNotificationRef.current = onNotification;
+  const onBranchUpdateRef = useRef(onBranchUpdate);
+  onBranchUpdateRef.current = onBranchUpdate;
 
   // Create terminal and WebSocket on mount
   useEffect(() => {
@@ -48,6 +51,10 @@ export function useSession(
           const msg = JSON.parse(data);
           if (msg.type === 'notification' && onNotificationRef.current) {
             onNotificationRef.current(msg.sessionId, msg.state);
+            return;
+          }
+          if (msg.type === 'branch_update' && onBranchUpdateRef.current) {
+            onBranchUpdateRef.current(msg.sessionId, msg.branch);
             return;
           }
         } catch {

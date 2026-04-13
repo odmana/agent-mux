@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { execSync } from 'node:child_process';
+import { watch, type FSWatcher } from 'node:fs';
+import { join } from 'node:path';
 import { type IPty, type IDisposable } from 'node-pty';
 import { createPty, killPty } from './pty-manager.js';
 
@@ -15,6 +17,12 @@ export interface Session {
 }
 
 const sessions = new Map<string, Session>();
+const branchWatchers = new Map<string, FSWatcher>();
+let branchChangeHandler: ((sessionId: string, branch: string) => void) | null = null;
+
+export function onBranchChange(handler: (sessionId: string, branch: string) => void): void {
+  branchChangeHandler = handler;
+}
 
 export function createSession(directory: string, shell: string): Session {
   const pty = createPty(shell, directory, 80, 24);
@@ -38,6 +46,26 @@ export function createSession(directory: string, shell: string): Session {
     session.scrollbackDisposable.dispose();
   });
   sessions.set(session.id, session);
+
+  // Watch .git/HEAD for branch changes (debounced — fs.watch can fire multiple times per change)
+  try {
+    const gitHead = join(directory, '.git', 'HEAD');
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const watcher = watch(gitHead, () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const newBranch = getGitBranch(session.directory);
+        if (newBranch !== session.branch) {
+          session.branch = newBranch;
+          branchChangeHandler?.(session.id, newBranch);
+        }
+      }, 100);
+    });
+    branchWatchers.set(session.id, watcher);
+  } catch {
+    // Not a git repo or .git/HEAD not accessible
+  }
+
   return session;
 }
 
@@ -52,12 +80,16 @@ export function getAllSessions(): Session[] {
 export function deleteSession(id: string): void {
   const session = sessions.get(id);
   if (!session) return;
+  branchWatchers.get(id)?.close();
+  branchWatchers.delete(id);
   session.scrollbackDisposable.dispose();
   killPty(session.pty);
   sessions.delete(id);
 }
 
 export function killAllSessions(): void {
+  for (const watcher of branchWatchers.values()) watcher.close();
+  branchWatchers.clear();
   for (const session of sessions.values()) {
     session.scrollbackDisposable.dispose();
     killPty(session.pty);

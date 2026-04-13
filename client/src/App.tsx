@@ -50,6 +50,10 @@ export default function App() {
     setNotificationStates(prev => ({ ...prev, [sessionId]: state }));
   }, []);
 
+  const handleBranchUpdate = useCallback((sessionId: string, branch: string) => {
+    setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, branch } : s));
+  }, []);
+
   const handleSelectSession = useCallback((id: string) => {
     setActiveId(id);
     // Clear blue (idle) dots when switching to a tab
@@ -103,6 +107,7 @@ export default function App() {
                 session={session}
                 isActive={session.id === activeId}
                 onNotification={handleNotification}
+                onBranchUpdate={handleBranchUpdate}
               />
             ))}
 
