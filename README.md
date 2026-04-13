@@ -57,134 +57,34 @@ Session tabs show colored dots reflecting Claude Code state:
 
 Green and blue dots clear when you switch to the tab. Red dots clear only when Claude resumes output after permission is granted.
 
-### Required Hook Setup
+### Hook Setup
 
-Notification dots require hooks in `~/.claude/settings.json`. Add these entries to your `hooks` object.
-
-**macOS / Linux:**
-
-```json
-{
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo \"working $(pwd)\" > \"/tmp/agent-mux-$$.state\" # agent-mux"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo \"idle $(pwd)\" > \"/tmp/agent-mux-$$.state\" # agent-mux"
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "matcher": "idle_prompt",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo \"idle $(pwd)\" > \"/tmp/agent-mux-$$.state\" # agent-mux"
-          }
-        ]
-      },
-      {
-        "matcher": "permission_prompt",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo \"permission $(pwd)\" > \"/tmp/agent-mux-$$.state\" # agent-mux"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-**Windows (bash shell):**
-
-```json
-{
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo \"working $(pwd)\" > \"$TEMP/agent-mux-$$.state\" # agent-mux"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo \"idle $(pwd)\" > \"$TEMP/agent-mux-$$.state\" # agent-mux"
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "matcher": "idle_prompt",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo \"idle $(pwd)\" > \"$TEMP/agent-mux-$$.state\" # agent-mux"
-          }
-        ]
-      },
-      {
-        "matcher": "permission_prompt",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo \"permission $(pwd)\" > \"$TEMP/agent-mux-$$.state\" # agent-mux"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-If you already have other entries in these hook arrays, append the agent-mux entries alongside them. The `# agent-mux` comment is a marker -- do not remove it.
-
-Without these hooks, the tabs will still work but no notification dots will appear. The `UserPromptSubmit` and `Stop` hooks are optional -- they enable the green "working" dot. The `Notification` hooks are needed for blue idle and red permission dots.
+Notification dots require hooks in `~/.claude/settings.json`. On first launch, agent-mux detects missing hooks and offers to install them automatically via a banner at the top of the page. A backup (`settings.json.bak`) is created before any changes. Without these hooks, the tabs will still work but no notification dots will appear.
 
 ## Project Structure
 
 ```
 agent-mux/
-├── server/                 # Express + WebSocket backend
+├── server/                        # Express + WebSocket backend
 │   └── src/
-│       ├── index.ts              # HTTP/WS server, PTY data forwarding
-│       ├── config.ts             # Optional config.json loader
-│       ├── sessions.ts           # Session state (PTY, scrollback, git branch)
-│       ├── routes.ts             # REST API endpoints
-│       ├── pty-manager.ts        # node-pty wrapper
+│       ├── index.ts               # HTTP/WS server, PTY data forwarding
+│       ├── config.ts              # Optional config.json loader
+│       ├── sessions.ts            # Session state (PTY, scrollback, git branch)
+│       ├── routes.ts              # REST API endpoints
+│       ├── pty-manager.ts         # node-pty wrapper
+│       ├── hooks-setup.ts         # Hook detection and auto-installation
 │       └── notification-watcher.ts # Polls /tmp for hook state files
-├── client/                 # React + Tailwind + xterm.js frontend
+├── client/                        # React + Tailwind + xterm.js frontend
 │   └── src/
-│       ├── App.tsx               # Root component, session + notification state
-│       ├── types.ts              # Session, NotificationState types
-│       ├── terminal-config.ts    # xterm theme + UI colors
+│       ├── App.tsx                # Root component, session + notification state
+│       ├── types.ts               # Session, NotificationState types
+│       ├── terminal-config.ts     # xterm theme + UI colors
 │       ├── hooks/
-│       │   └── useSession.ts     # WebSocket + xterm lifecycle per tab
+│       │   └── useSession.ts      # WebSocket + xterm lifecycle per tab
 │       └── components/
-│           ├── Sidebar.tsx       # Tab list + new session button
-│           ├── TabItem.tsx       # Single tab with notification dot
-│           ├── TerminalPane.tsx  # xterm.js wrapper
-│           └── DirectoryPicker.tsx # Modal with path autocomplete
+│           ├── Sidebar.tsx        # Tab list + new session button
+│           ├── TabItem.tsx        # Single tab with notification dot
+│           ├── TerminalPane.tsx   # xterm.js wrapper
+│           ├── DirectoryPicker.tsx # Modal with path autocomplete
+│           └── HooksBanner.tsx    # Hook setup warning banner
 ```

@@ -9,6 +9,7 @@ import {
   deleteSession,
 } from './sessions.js';
 import { fuzzyMatch } from './fuzzy-match.js';
+import { checkHooksStatus, installHooks } from './hooks-setup.js';
 
 export interface DirectorySuggestion {
   path: string;
@@ -105,6 +106,15 @@ export function createRouter(shell: string): Router {
   router.get('/api/directories', (req, res) => {
     const prefix = (req.query.prefix as string) || '';
     res.json(listDirectories(prefix));
+  });
+
+  router.get('/api/hooks/status', (_req, res) => {
+    res.json(checkHooksStatus());
+  });
+
+  router.post('/api/hooks/install', (_req, res) => {
+    const result = installHooks();
+    res.status(result.success ? 200 : 500).json(result);
   });
 
   return router;

@@ -3,6 +3,7 @@ import type { Session, NotificationState } from './types';
 import Sidebar from './components/Sidebar';
 import TerminalPane from './components/TerminalPane';
 import DirectoryPicker from './components/DirectoryPicker';
+import HooksBanner from './components/HooksBanner';
 import { uiColors } from './terminal-config';
 
 export default function App() {
@@ -135,6 +136,8 @@ export default function App() {
         />
 
         <div className="flex-1 relative min-w-0">
+            <HooksBanner />
+
             {sessions.length === 0 && !showPicker && (
               <div className="absolute inset-0 flex items-center justify-center text-sm" style={{ color: uiColors.textDim }}>
                 Open a tab to get started
