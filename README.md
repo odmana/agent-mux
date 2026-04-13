@@ -38,6 +38,15 @@ Optional `config.json` in the repo root (gitignored):
 - `serverPort` -- server port. Defaults to `3000`.
 - `clientPort` -- Vite dev server port. Defaults to `5173`.
 
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl/Cmd + Shift + N` | New session |
+| `Ctrl/Cmd + Shift + 1-9` | Switch to tab by number |
+
+Shortcut hints are shown as keycap badges on each tab (1-9) and the "New session" button.
+
 ## Notification Dots
 
 Session tabs show colored dots reflecting Claude Code state:

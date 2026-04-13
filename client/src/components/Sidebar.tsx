@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Session, NotificationState } from '../types';
 import TabItem from './TabItem';
 import { uiColors } from '../terminal-config';
+import Kbd from './Kbd';
 
 interface SidebarProps {
   sessions: Session[];
@@ -85,6 +86,7 @@ export default function Sidebar({
               session={session}
               isActive={session.id === activeId}
               notificationState={notificationStates[session.id] ?? 'none'}
+              index={index}
               onClick={() => onSelectSession(session.id)}
               onClose={() => onCloseSession(session.id)}
             />
@@ -111,6 +113,7 @@ export default function Sidebar({
         >
           <span className="text-base leading-none">+</span>
           New session
+          <Kbd className="ml-auto">N</Kbd>
         </button>
       </div>
     </div>

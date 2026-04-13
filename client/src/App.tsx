@@ -12,6 +12,10 @@ export default function App() {
   const [notificationStates, setNotificationStates] = useState<Record<string, NotificationState>>({});
   const activeIdRef = useRef(activeId);
   activeIdRef.current = activeId;
+  const sessionsRef = useRef(sessions);
+  sessionsRef.current = sessions;
+  const showPickerRef = useRef(showPicker);
+  showPickerRef.current = showPicker;
 
   useEffect(() => {
     fetch('/api/sessions')
@@ -73,6 +77,33 @@ export default function App() {
       return changed ? next : prev;
     });
   }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod || !e.shiftKey) return;
+
+      if (e.code === 'KeyN') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!showPickerRef.current) setShowPicker(true);
+        return;
+      }
+
+      const match = e.code.match(/^Digit(\d)$/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num >= 1 && num <= sessionsRef.current.length) {
+          e.preventDefault();
+          e.stopPropagation();
+          handleSelectSession(sessionsRef.current[num - 1].id);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
+  }, [handleSelectSession]);
 
   const handleCloseSession = async (id: string) => {
     const res = await fetch(`/api/sessions/${id}`, { method: 'DELETE' });

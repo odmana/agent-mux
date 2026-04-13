@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import type { Session, NotificationState } from '../types';
 import { uiColors } from '../terminal-config';
+import Kbd from './Kbd';
 
 interface TabItemProps {
   session: Session;
   isActive: boolean;
   notificationState: NotificationState;
+  index: number;
   onClick: () => void;
   onClose: () => void;
 }
 
-export default function TabItem({ session, isActive, notificationState, onClick, onClose }: TabItemProps) {
+export default function TabItem({ session, isActive, notificationState, index, onClick, onClose }: TabItemProps) {
   const [confirming, setConfirming] = useState(false);
   const displayName = session.directory.replace(/[\\/]+$/, '').split(/[\\/]/).pop() || session.directory;
 
@@ -116,6 +118,7 @@ export default function TabItem({ session, isActive, notificationState, onClick,
             >
               {session.branch || 'not git tracked'}
             </span>
+            {index < 9 && <Kbd className="ml-auto shrink-0">{index + 1}</Kbd>}
           </div>
         </>
       )}
