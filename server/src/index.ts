@@ -33,6 +33,21 @@ const activeConnections = new Map<string, WebSocket>();
 
 // Handle WebSocket upgrade on /ws/:sessionId
 server.on('upgrade', (req, socket, head) => {
+  // Reject cross-origin WebSocket connections (CSRF protection)
+  const origin = req.headers.origin;
+  if (origin) {
+    const allowed = [
+      `http://localhost:${config.serverPort}`,
+      `http://127.0.0.1:${config.serverPort}`,
+      `http://localhost:${config.clientPort}`,
+      `http://127.0.0.1:${config.clientPort}`,
+    ];
+    if (!allowed.includes(origin)) {
+      socket.destroy();
+      return;
+    }
+  }
+
   const match = req.url?.match(/^\/ws\/(.+)$/);
   if (!match) {
     socket.destroy();
@@ -114,7 +129,7 @@ wss.on('connection', (ws: WebSocket, _req: IncomingMessage, session: Session) =>
   });
 });
 
-server.listen(config.serverPort, () => {
+server.listen(config.serverPort, '127.0.0.1', () => {
   console.log(`agent-mux listening on http://localhost:${config.serverPort}`);
 
   onBranchChange((sessionId, branch) => {

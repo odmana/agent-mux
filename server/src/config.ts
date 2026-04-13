@@ -5,6 +5,7 @@ import { platform } from "node:os";
 export interface Config {
   shell: string;
   serverPort: number;
+  clientPort: number;
 }
 
 function defaultShell(): string {
@@ -16,6 +17,7 @@ export function loadConfig(): Config {
   const defaults: Config = {
     shell: defaultShell(),
     serverPort: 3000,
+    clientPort: 5173,
   };
 
   const configPath = resolve(import.meta.dirname, "../../config.json");
@@ -26,6 +28,7 @@ export function loadConfig(): Config {
     return {
       shell: typeof raw.shell === "string" ? raw.shell : defaults.shell,
       serverPort: typeof raw.serverPort === "number" ? raw.serverPort : defaults.serverPort,
+      clientPort: typeof raw.clientPort === "number" ? raw.clientPort : defaults.clientPort,
     };
   } catch {
     return defaults;
