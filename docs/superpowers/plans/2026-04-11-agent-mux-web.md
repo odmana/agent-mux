@@ -48,6 +48,7 @@ agent-mux/
 ### Task 1: Project Scaffolding
 
 **Files:**
+
 - Create: `.mise.toml`
 - Create: `server/package.json`
 - Create: `server/tsconfig.json`
@@ -108,6 +109,7 @@ pnpm = "10"
 - [ ] **Step 4: Install server dependencies**
 
 Run:
+
 ```bash
 cd server
 pnpm add express ws node-pty
@@ -161,6 +163,7 @@ Expected: prints "agent-mux server starting..."
 - [ ] **Step 9: Install client dependencies**
 
 Run:
+
 ```bash
 cd client
 pnpm add react react-dom @xterm/xterm @xterm/addon-fit
@@ -208,10 +211,12 @@ export default defineConfig({
 - [ ] **Step 12: Create `client/src/main.css`**
 
 ```css
-@import "tailwindcss";
-@import "@xterm/xterm/css/xterm.css";
+@import 'tailwindcss';
+@import '@xterm/xterm/css/xterm.css';
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   margin: 0;
   overflow: hidden;
@@ -251,6 +256,7 @@ git commit -m "feat: scaffold server and client packages"
 ### Task 2: Server — Config + PTY Manager
 
 **Files:**
+
 - Create: `server/src/config.ts`
 - Create: `server/src/pty-manager.ts`
 - Create: `server/test/config.test.ts`
@@ -356,12 +362,7 @@ Expected: all tests PASS
 ```ts
 import { spawn, type IPty } from 'node-pty';
 
-export function createPty(
-  shell: string,
-  cwd: string,
-  cols: number,
-  rows: number,
-): IPty {
+export function createPty(shell: string, cwd: string, cols: number, rows: number): IPty {
   return spawn(shell, [], {
     cwd,
     cols,
@@ -397,6 +398,7 @@ git commit -m "feat(server): add config loading and PTY manager"
 ### Task 3: Server — Sessions
 
 **Files:**
+
 - Create: `server/src/sessions.ts`
 - Create: `server/test/sessions.test.ts`
 
@@ -548,6 +550,7 @@ git commit -m "feat(server): add session management with PTY lifecycle"
 ### Task 4: Server — Routes + Directory Listing
 
 **Files:**
+
 - Create: `server/src/routes.ts`
 - Create: `server/test/routes.test.ts`
 
@@ -617,19 +620,12 @@ import { Router } from 'express';
 import { readdirSync } from 'node:fs';
 import { resolve, dirname, basename } from 'node:path';
 import { homedir } from 'node:os';
-import {
-  createSession,
-  getAllSessions,
-  deleteSession,
-  getSession,
-} from './sessions.js';
+import { createSession, getAllSessions, deleteSession, getSession } from './sessions.js';
 
 export function listDirectories(prefix: string): string[] {
   if (!prefix) return [];
 
-  const expanded = prefix.startsWith('~')
-    ? homedir() + prefix.slice(1)
-    : prefix;
+  const expanded = prefix.startsWith('~') ? homedir() + prefix.slice(1) : prefix;
 
   try {
     if (expanded.endsWith('/')) {
@@ -646,9 +642,7 @@ export function listDirectories(prefix: string): string[] {
     return entries
       .filter(
         (e) =>
-          e.isDirectory() &&
-          !e.name.startsWith('.') &&
-          e.name.toLowerCase().startsWith(partial),
+          e.isDirectory() && !e.name.startsWith('.') && e.name.toLowerCase().startsWith(partial),
       )
       .map((e) => resolve(parent, e.name))
       .slice(0, 20);
@@ -714,6 +708,7 @@ git commit -m "feat(server): add REST routes and directory listing"
 ### Task 5: Server — WebSocket + Bootstrap
 
 **Files:**
+
 - Modify: `server/src/index.ts` (replace placeholder)
 
 - [ ] **Step 1: Implement `server/src/index.ts`**
@@ -812,9 +807,18 @@ function cleanup() {
   server.close();
 }
 
-process.on('SIGINT', () => { cleanup(); process.exit(0); });
-process.on('SIGTERM', () => { cleanup(); process.exit(0); });
-process.on('SIGHUP', () => { cleanup(); process.exit(0); });
+process.on('SIGINT', () => {
+  cleanup();
+  process.exit(0);
+});
+process.on('SIGTERM', () => {
+  cleanup();
+  process.exit(0);
+});
+process.on('SIGHUP', () => {
+  cleanup();
+  process.exit(0);
+});
 process.on('uncaughtException', (err) => {
   console.error('agent-mux crashed:', err);
   cleanup();
@@ -835,6 +839,7 @@ Expected: prints "agent-mux listening on http://localhost:3000"
 - [ ] **Step 4: Test REST API with curl**
 
 Run (in another terminal):
+
 ```bash
 # Create session
 curl -s -X POST http://localhost:3000/api/sessions \
@@ -859,6 +864,7 @@ git commit -m "feat(server): add WebSocket handler and express bootstrap"
 ### Task 6: Client — React + Tailwind + Layout Shell
 
 **Files:**
+
 - Create: `client/src/types.ts`
 - Create: `client/src/App.tsx`
 - Modify: `client/src/main.tsx` (import App)
@@ -888,9 +894,7 @@ export default function App() {
       {/* Sidebar */}
       <div className="w-60 min-w-60 bg-white/[0.03] border-r border-white/[0.06] flex flex-col">
         <div className="flex-1 p-2 flex flex-col gap-0.5 overflow-y-auto">
-          {sessions.length === 0 && (
-            <p className="text-white/30 text-sm p-3">No sessions</p>
-          )}
+          {sessions.length === 0 && <p className="text-white/30 text-sm p-3">No sessions</p>}
         </div>
         <div className="p-2 border-t border-white/[0.06]">
           <button className="w-full p-2.5 rounded-[10px] text-center text-sm text-white/30 border border-dashed border-white/[0.08] hover:border-white/20 hover:text-white/50 transition-all">
@@ -944,6 +948,7 @@ git commit -m "feat(client): add App shell with sidebar and terminal pane layout
 ### Task 7: Client — Sidebar + TabItem
 
 **Files:**
+
 - Create: `client/src/components/Sidebar.tsx`
 - Create: `client/src/components/TabItem.tsx`
 - Modify: `client/src/App.tsx` (use Sidebar)
@@ -973,11 +978,16 @@ export default function TabItem({ session, isActive, onClick, onClose }: TabItem
       }`}
     >
       <div className="flex items-center justify-between">
-        <span className={`text-[13px] font-medium ${isActive ? 'text-[#f4f4f5]' : 'text-white/55'}`}>
+        <span
+          className={`text-[13px] font-medium ${isActive ? 'text-[#f4f4f5]' : 'text-white/55'}`}
+        >
           {dirName}
         </span>
         <button
-          onClick={(e) => { e.stopPropagation(); onClose(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
           className="text-white/10 hover:text-white/40 text-[10px] w-[18px] h-[18px] flex items-center justify-center rounded transition-all"
         >
           ×
@@ -1102,6 +1112,7 @@ git commit -m "feat(client): add Sidebar and TabItem components"
 ### Task 8: Client — TerminalPane + useSession
 
 **Files:**
+
 - Create: `client/src/hooks/useSession.ts`
 - Create: `client/src/components/TerminalPane.tsx`
 
@@ -1211,12 +1222,7 @@ export default function TerminalPane({ session, isActive }: TerminalPaneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   useSession(session.id, containerRef, isActive);
 
-  return (
-    <div
-      ref={containerRef}
-      className={`absolute inset-0 ${isActive ? '' : 'invisible'}`}
-    />
-  );
+  return <div ref={containerRef} className={`absolute inset-0 ${isActive ? '' : 'invisible'}`} />;
 }
 ```
 
@@ -1237,6 +1243,7 @@ git commit -m "feat(client): add TerminalPane with xterm.js and WebSocket hook"
 ### Task 9: Client — DirectoryPicker
 
 **Files:**
+
 - Create: `client/src/components/DirectoryPicker.tsx`
 
 - [ ] **Step 1: Create `client/src/components/DirectoryPicker.tsx`**
@@ -1299,7 +1306,10 @@ export default function DirectoryPicker({ onConfirm, onCancel }: DirectoryPicker
   };
 
   return (
-    <div className="absolute inset-0 bg-black/60 flex items-start justify-center pt-[20vh] z-10" onClick={onCancel}>
+    <div
+      className="absolute inset-0 bg-black/60 flex items-start justify-center pt-[20vh] z-10"
+      onClick={onCancel}
+    >
       <div
         className="bg-[#1a1a1a] border border-white/10 rounded-xl w-[500px] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -1361,6 +1371,7 @@ git commit -m "feat(client): add DirectoryPicker modal with autocomplete"
 ### Task 10: Integration — App Wiring
 
 **Files:**
+
 - Modify: `client/src/App.tsx` (wire everything together)
 
 - [ ] **Step 1: Update `client/src/App.tsx` with full wiring**
@@ -1419,18 +1430,11 @@ export default function App() {
         )}
 
         {sessions.map((session) => (
-          <TerminalPane
-            key={session.id}
-            session={session}
-            isActive={session.id === activeId}
-          />
+          <TerminalPane key={session.id} session={session} isActive={session.id === activeId} />
         ))}
 
         {showPicker && (
-          <DirectoryPicker
-            onConfirm={handleNewSession}
-            onCancel={() => setShowPicker(false)}
-          />
+          <DirectoryPicker onConfirm={handleNewSession} onCancel={() => setShowPicker(false)} />
         )}
       </div>
     </div>
@@ -1446,6 +1450,7 @@ Expected: no errors
 - [ ] **Step 3: End-to-end manual verification**
 
 Start both servers:
+
 ```bash
 # Terminal 1
 cd server && pnpm dev
@@ -1457,6 +1462,7 @@ cd client && pnpm dev
 Open http://localhost:5173 in browser.
 
 Verify:
+
 1. Empty sidebar with "+ New tab" button and "Open a tab to get started" message
 2. Click "+ New tab" → directory picker modal appears with `~/` prefilled
 3. Type a path — autocomplete suggestions appear below

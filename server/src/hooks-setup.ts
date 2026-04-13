@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
 import { homedir, platform } from 'node:os';
+import { join } from 'node:path';
 
 const MARKER = '# agent-mux';
 
@@ -33,16 +33,16 @@ function hookCommand(event: string): string {
 }
 
 function hasMarkerInHooks(hooks: { type: string; command: string }[]): boolean {
-  return hooks.some(h => typeof h.command === 'string' && h.command.includes(MARKER));
+  return hooks.some((h) => typeof h.command === 'string' && h.command.includes(MARKER));
 }
 
 function hasMarkerInEntries(entries: HookEntry[]): boolean {
-  return entries.some(e => Array.isArray(e.hooks) && hasMarkerInHooks(e.hooks));
+  return entries.some((e) => Array.isArray(e.hooks) && hasMarkerInHooks(e.hooks));
 }
 
 function hasMarkerInNotification(entries: HookEntry[], matcher: string): boolean {
   return entries.some(
-    e => e.matcher === matcher && Array.isArray(e.hooks) && hasMarkerInHooks(e.hooks),
+    (e) => e.matcher === matcher && Array.isArray(e.hooks) && hasMarkerInHooks(e.hooks),
   );
 }
 
@@ -54,7 +54,12 @@ export function checkHooksStatus(): HooksStatus {
     return {
       configured: false,
       settingsExists: false,
-      missing: ['UserPromptSubmit', 'Stop', 'Notification:idle_prompt', 'Notification:permission_prompt'],
+      missing: [
+        'UserPromptSubmit',
+        'Stop',
+        'Notification:idle_prompt',
+        'Notification:permission_prompt',
+      ],
     };
   }
 
@@ -65,7 +70,12 @@ export function checkHooksStatus(): HooksStatus {
     return {
       configured: false,
       settingsExists: true,
-      missing: ['UserPromptSubmit', 'Stop', 'Notification:idle_prompt', 'Notification:permission_prompt'],
+      missing: [
+        'UserPromptSubmit',
+        'Stop',
+        'Notification:idle_prompt',
+        'Notification:permission_prompt',
+      ],
       error: 'settings.json contains malformed JSON',
     };
   }
@@ -144,11 +154,14 @@ export function installHooks(): InstallResult {
   // Notification hooks
   if (!Array.isArray(hooks.Notification)) hooks.Notification = [];
 
-  for (const [matcher, event] of [['idle_prompt', 'idle'], ['permission_prompt', 'permission']] as const) {
+  for (const [matcher, event] of [
+    ['idle_prompt', 'idle'],
+    ['permission_prompt', 'permission'],
+  ] as const) {
     const key = `Notification:${matcher}`;
     if (!status.missing.includes(key)) continue;
 
-    const existing = hooks.Notification.find(e => e.matcher === matcher);
+    const existing = hooks.Notification.find((e) => e.matcher === matcher);
     if (existing) {
       // Append agent-mux command to existing entry
       existing.hooks.push({ type: 'command', command: hookCommand(event) });

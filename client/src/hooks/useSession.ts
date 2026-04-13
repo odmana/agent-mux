@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { Terminal } from '@xterm/xterm';
+import { useEffect, useRef } from 'react';
+
 import { terminalConfig } from '../terminal-config';
 import type { NotificationState } from '../types';
 

@@ -48,6 +48,7 @@ interface Session {
 ```
 
 Responsibilities:
+
 - Add/remove/switch tabs
 - Track active tab index
 - Read git branch name from each session's directory
@@ -69,13 +70,14 @@ No TUI framework. Thin custom renderer using raw ANSI escape sequences.
 
 Stdin in raw mode. Three input contexts:
 
-| Context | Mouse | Keyboard |
-|---------|-------|----------|
-| **Navigation** (sidebar focused) | Click tab = switch, click "+" = new tab | Arrow keys navigate, Enter = switch + focus terminal |
-| **Terminal** (main pane focused) | Clicks forwarded to PTY | All keystrokes forwarded to PTY |
-| **Directory picker** (overlay) | Click suggestion = select it | Type to filter, Tab = accept suggestion, Enter = confirm, Esc = cancel |
+| Context                          | Mouse                                   | Keyboard                                                               |
+| -------------------------------- | --------------------------------------- | ---------------------------------------------------------------------- |
+| **Navigation** (sidebar focused) | Click tab = switch, click "+" = new tab | Arrow keys navigate, Enter = switch + focus terminal                   |
+| **Terminal** (main pane focused) | Clicks forwarded to PTY                 | All keystrokes forwarded to PTY                                        |
+| **Directory picker** (overlay)   | Click suggestion = select it            | Type to filter, Tab = accept suggestion, Enter = confirm, Esc = cancel |
 
 **Prefix key:** `Ctrl+A` (tmux-style)
+
 - From terminal mode: `Ctrl+A` then navigation key enters navigation mode
 - Clicking sidebar from terminal mode switches to navigation
 - Clicking main pane from navigation switches to terminal mode
@@ -105,10 +107,12 @@ The hook entry appended:
 ```json
 {
   "matcher": "idle_prompt|permission_prompt",
-  "hooks": [{
-    "type": "command",
-    "command": "echo $HOOK_EVENT_NAME > /tmp/agent-mux-$SESSION_ID.state # agent-mux"
-  }]
+  "hooks": [
+    {
+      "type": "command",
+      "command": "echo $HOOK_EVENT_NAME > /tmp/agent-mux-$SESSION_ID.state # agent-mux"
+    }
+  ]
 }
 ```
 
@@ -165,6 +169,7 @@ agent-mux/
 ## POC Scope
 
 **In scope:**
+
 - Sidebar with tab list (keyboard navigable + mouse clickable)
 - Main pane rendering PTY output via xterm-headless + addon-serialize
 - New tab creation with directory autocomplete
@@ -174,6 +179,7 @@ agent-mux/
 - Clean exit (restore terminal state, kill all PTYs)
 
 **Out of scope (future):**
+
 - Windows testing (target macOS/Linux first)
 - Config file for predefined projects
 - Tab reordering / drag

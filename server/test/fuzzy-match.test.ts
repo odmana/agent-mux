@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { fuzzyMatch, fuzzySort } from '../src/fuzzy-match.js';
 
 describe('fuzzyMatch', () => {
@@ -72,11 +73,7 @@ describe('fuzzyMatch', () => {
 
 describe('fuzzySort', () => {
   it('returns results sorted by score descending', () => {
-    const results = fuzzySort('doc', [
-      'mydocuments',
-      'documents',
-      'adocument',
-    ]);
+    const results = fuzzySort('doc', ['mydocuments', 'documents', 'adocument']);
     expect(results.length).toBe(3);
     expect(results[0].text).toBe('documents');
   });

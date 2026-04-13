@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "react-perf", "typescript", "unicorn", "import", "vitest", "oxc"],
+  "plugins": ["react", "typescript", "unicorn", "import", "vitest", "oxc"],
   "categories": {
     "correctness": "error",
     "suspicious": "warn",
@@ -18,6 +18,9 @@
   "rules": {
     "no-console": "off",
     "react/react-in-jsx-scope": "off",
-    "import/no-unassigned-import": "off"
+    "import/no-unassigned-import": "off",
+    "react-hooks/exhaustive-deps": "warn",
+    "vitest/require-mock-type-parameters": "off",
+    "jest/no-conditional-expect": "off"
   }
 }

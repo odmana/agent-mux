@@ -1,8 +1,10 @@
-import { randomUUID } from 'node:crypto';
 import { execSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { watch, type FSWatcher } from 'node:fs';
 import { join } from 'node:path';
+
 import { type IPty, type IDisposable } from 'node-pty';
+
 import { createPty, killPty } from './pty-manager.js';
 
 const SCROLLBACK_LIMIT = 100 * 1024; // 100KB

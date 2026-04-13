@@ -1,7 +1,8 @@
 import { useRef } from 'react';
-import type { Session, NotificationState } from '../types';
+
 import { useSession } from '../hooks/useSession';
 import { terminalConfig } from '../terminal-config';
+import type { Session, NotificationState } from '../types';
 
 interface TerminalPaneProps {
   session: Session;
@@ -10,7 +11,12 @@ interface TerminalPaneProps {
   onBranchUpdate?: (sessionId: string, branch: string) => void;
 }
 
-export default function TerminalPane({ session, isActive, onNotification, onBranchUpdate }: TerminalPaneProps) {
+export default function TerminalPane({
+  session,
+  isActive,
+  onNotification,
+  onBranchUpdate,
+}: TerminalPaneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   useSession(session.id, containerRef, isActive, onNotification, onBranchUpdate);
 

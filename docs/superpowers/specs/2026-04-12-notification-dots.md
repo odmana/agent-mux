@@ -9,6 +9,7 @@
 Adds notification dots to session tabs in the sidebar so users can see when a background Claude Code session needs attention — without manually clicking through every tab.
 
 Two dot types:
+
 - **Blue** — Claude Code is idle, waiting for user input
 - **Red (pulsing)** — Claude Code needs permission to proceed
 
@@ -64,6 +65,7 @@ The `# agent-mux` comment acts as a marker for identifying the hook entry. Each 
 Polls `/tmp` every 500ms for `agent-mux-*.state` files.
 
 For each file:
+
 1. Read content, parse `<event_type> <directory>` (first word = event, rest = directory)
 2. Match to session by normalizing and comparing directory paths
 3. If state changed for that session, call `onStateChange(sessionId, state)` callback
@@ -74,11 +76,13 @@ When multiple files map to the same session, the newest (by mtime) wins.
 Maintains internal `Map<string, NotificationState>` keyed by session ID.
 
 **Exports:**
+
 - `startNotificationWatcher(opts)` — begins polling, takes `onStateChange` callback
 - `stopNotificationWatcher()` — clears interval
 - `clearIfPermission(sessionId)` — clears state only if currently `'permission'`, fires callback with `'none'`
 
 **Stale file cleanup:**
+
 - Files older than 60 seconds with no matching session are deleted regardless of process status
 - Files whose originating process (PID from filename) is dead are deleted
 - Unparseable files are deleted immediately
@@ -106,20 +110,24 @@ In `ws.onmessage`, data starting with `{` is tentatively parsed as JSON. If it h
 ## Dot Rendering (`client/src/components/TabItem.tsx`)
 
 **Visibility rules:**
+
 - Blue dot (`idle`): shown only on background tabs (`!isActive`)
 - Red dot (`permission`): shown on ALL tabs including active
 
 **Clearing rules:**
+
 - Blue: clears client-side when user switches to that tab
 - Red: clears only when server sends `'none'` (triggered by PTY output after permission granted)
 
 **Visual:**
+
 - 8px (`w-2 h-2`) circle with `border-radius: full`
 - Glow effect via `boxShadow: 0 0 6px <color>, 0 0 2px <color>`
 - Red dot has a CSS `pulse-glow` animation (2s ease-in-out infinite, opacity 1 → 0.5 → 1)
 - Positioned inline before the directory path text
 
 **Colors (from `terminal-config.ts` `uiColors`):**
+
 - `notificationIdle: '#81a1c1'` (Nord blue, same as `accent`)
 - `notificationPermission: '#bf616a'` (Nord red, same as `dangerText`)
 
@@ -131,19 +139,19 @@ The hook writes `$(pwd)` which is the working directory of the shell running the
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `~/.claude/settings.json` | Two separate hook entries replacing one combined entry |
-| **New:** `server/src/notification-watcher.ts` | Poll /tmp, parse state files, match to sessions |
-| `server/src/index.ts` | Wire watcher start/stop, send WS notifications, clear on PTY output |
-| `client/src/types.ts` | `NotificationState` type alias |
-| `client/src/terminal-config.ts` | Notification dot colors in `uiColors` |
-| `client/src/hooks/useSession.ts` | `onNotification` param, JSON message parsing |
-| `client/src/App.tsx` | `notificationStates` state, handlers, prop threading |
-| `client/src/components/TerminalPane.tsx` | Forward `onNotification` prop |
-| `client/src/components/Sidebar.tsx` | Forward `notificationStates` prop |
-| `client/src/components/TabItem.tsx` | Dot rendering with glow/pulse |
-| `client/src/main.css` | `pulse-glow` keyframe animation |
+| File                                          | Change                                                              |
+| --------------------------------------------- | ------------------------------------------------------------------- |
+| `~/.claude/settings.json`                     | Two separate hook entries replacing one combined entry              |
+| **New:** `server/src/notification-watcher.ts` | Poll /tmp, parse state files, match to sessions                     |
+| `server/src/index.ts`                         | Wire watcher start/stop, send WS notifications, clear on PTY output |
+| `client/src/types.ts`                         | `NotificationState` type alias                                      |
+| `client/src/terminal-config.ts`               | Notification dot colors in `uiColors`                               |
+| `client/src/hooks/useSession.ts`              | `onNotification` param, JSON message parsing                        |
+| `client/src/App.tsx`                          | `notificationStates` state, handlers, prop threading                |
+| `client/src/components/TerminalPane.tsx`      | Forward `onNotification` prop                                       |
+| `client/src/components/Sidebar.tsx`           | Forward `notificationStates` prop                                   |
+| `client/src/components/TabItem.tsx`           | Dot rendering with glow/pulse                                       |
+| `client/src/main.css`                         | `pulse-glow` keyframe animation                                     |
 
 ## Known Limitations
 

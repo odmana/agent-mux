@@ -1,6 +1,6 @@
-import { readFileSync, existsSync } from "node:fs";
-import { resolve } from "node:path";
-import { platform } from "node:os";
+import { readFileSync, existsSync } from 'node:fs';
+import { platform } from 'node:os';
+import { resolve } from 'node:path';
 
 export interface Config {
   shell: string;
@@ -9,8 +9,8 @@ export interface Config {
 }
 
 function defaultShell(): string {
-  if (platform() === "win32") return "powershell.exe";
-  return process.env.SHELL || "/bin/sh";
+  if (platform() === 'win32') return 'powershell.exe';
+  return process.env.SHELL || '/bin/sh';
 }
 
 export function loadConfig(): Config {
@@ -20,15 +20,15 @@ export function loadConfig(): Config {
     clientPort: 5173,
   };
 
-  const configPath = resolve(import.meta.dirname, "../../config.json");
+  const configPath = resolve(import.meta.dirname, '../../config.json');
   if (!existsSync(configPath)) return defaults;
 
   try {
-    const raw = JSON.parse(readFileSync(configPath, "utf-8"));
+    const raw = JSON.parse(readFileSync(configPath, 'utf-8'));
     return {
-      shell: typeof raw.shell === "string" ? raw.shell : defaults.shell,
-      serverPort: typeof raw.serverPort === "number" ? raw.serverPort : defaults.serverPort,
-      clientPort: typeof raw.clientPort === "number" ? raw.clientPort : defaults.clientPort,
+      shell: typeof raw.shell === 'string' ? raw.shell : defaults.shell,
+      serverPort: typeof raw.serverPort === 'number' ? raw.serverPort : defaults.serverPort,
+      clientPort: typeof raw.clientPort === 'number' ? raw.clientPort : defaults.clientPort,
     };
   } catch {
     return defaults;

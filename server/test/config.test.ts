@@ -1,6 +1,8 @@
-import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { writeFileSync, unlinkSync, existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+
+import { describe, it, expect, afterEach, beforeEach } from 'vitest';
+
 import { loadConfig } from '../src/config.js';
 
 describe('loadConfig', () => {

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+
 import { uiColors } from '../terminal-config';
 
 export default function Kbd({ children, className }: { children: ReactNode; className?: string }) {

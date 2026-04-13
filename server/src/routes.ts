@@ -1,15 +1,12 @@
-import { Router } from 'express';
 import { readdirSync, existsSync } from 'node:fs';
-import { resolve, dirname, basename } from 'node:path';
 import { homedir } from 'node:os';
-import {
-  createSession,
-  getAllSessions,
-  getSession,
-  deleteSession,
-} from './sessions.js';
+import { resolve, dirname, basename } from 'node:path';
+
+import { Router } from 'express';
+
 import { fuzzyMatch } from './fuzzy-match.js';
 import { checkHooksStatus, installHooks } from './hooks-setup.js';
+import { createSession, getAllSessions, getSession, deleteSession } from './sessions.js';
 
 export interface DirectorySuggestion {
   path: string;
@@ -38,8 +35,7 @@ export function listDirectories(prefix: string): DirectorySuggestion[] {
     const parent = dirname(expanded);
     const partial = basename(expanded);
     const entries = readdirSync(parent, { withFileTypes: true });
-    const matched: { path: string; score: number; matchIndices: number[] }[] =
-      [];
+    const matched: { path: string; score: number; matchIndices: number[] }[] = [];
     for (const e of entries) {
       if (!e.isDirectory() || e.name.startsWith('.')) continue;
       const result = fuzzyMatch(partial, e.name);
@@ -55,9 +51,7 @@ export function listDirectories(prefix: string): DirectorySuggestion[] {
       if (b.score !== a.score) return b.score - a.score;
       return a.path.localeCompare(b.path);
     });
-    return matched
-      .slice(0, 20)
-      .map(({ path, matchIndices }) => ({ path, matchIndices }));
+    return matched.slice(0, 20).map(({ path, matchIndices }) => ({ path, matchIndices }));
   } catch {
     return [];
   }

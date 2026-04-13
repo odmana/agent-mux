@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { listDirectories } from '../src/routes.js';
 
 const home = (process.env.HOME || '/tmp').replaceAll('\\', '/');

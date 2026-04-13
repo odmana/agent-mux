@@ -80,6 +80,7 @@ React + Tailwind + xterm.js, built with Vite.
 **Layout:** Two regions — a fixed-width sidebar on the left and a terminal pane filling the remaining space.
 
 **Sidebar:** Displays the list of session tabs. Each tab shows:
+
 - Directory name (basename of path)
 - Git branch
 - Close button (×)
@@ -93,6 +94,7 @@ Active tab is visually highlighted. A "+ New tab" button is pinned at the bottom
 ### Communication
 
 **Opening a new tab:**
+
 1. User clicks "+ New tab" → `DirectoryPicker` modal opens
 2. User types a path → client calls `GET /api/directories?prefix=...` for autocomplete suggestions
 3. User confirms → client calls `POST /api/sessions { directory }`.
@@ -101,22 +103,26 @@ Active tab is visually highlighted. A "+ New tab" button is pinned at the bottom
 6. Client sends `{ type: "resize", cols, rows }` over WebSocket
 
 **Typing in a terminal:**
+
 1. xterm.js `onData` → send keystroke bytes over WebSocket
 2. Server receives → writes to `node-pty`
 3. PTY output → server sends over WebSocket
 4. Client receives → writes to xterm.js
 
 **Switching tabs:**
+
 1. Click tab → React state update (`activeSessionId`)
 2. Show active xterm container, hide others
 3. Call `terminal.focus()` and `fitAddon.fit()` on the active terminal
 
 **Closing a tab:**
+
 1. Click × → `DELETE /api/sessions/:id`
 2. Server kills PTY, WebSocket closes
 3. Client disposes xterm.js instance, removes tab
 
 **Terminal resize:**
+
 1. Browser window resizes → xterm.js fit addon recalculates dimensions
 2. Client sends `{ type: "resize", cols, rows }` over WebSocket
 3. Server calls `pty.resize(cols, rows)`
@@ -124,6 +130,7 @@ Active tab is visually highlighted. A "+ New tab" button is pinned at the bottom
 ## Tech Stack
 
 **Server:**
+
 - Node.js (managed via `mise`)
 - TypeScript
 - `express` — HTTP server, static file serving
@@ -132,6 +139,7 @@ Active tab is visually highlighted. A "+ New tab" button is pinned at the bottom
 - `tsx` — dev runner
 
 **Client:**
+
 - React
 - Tailwind CSS v4 (via `@tailwindcss/vite` plugin)
 - `@xterm/xterm` — terminal emulation in the browser
@@ -185,6 +193,7 @@ agent-mux/
 ## POC Scope
 
 **In scope:**
+
 - Sidebar with session tab list (click to switch, × to close)
 - Terminal pane with xterm.js per tab (stays mounted when backgrounded)
 - New tab creation with directory autocomplete modal
@@ -196,6 +205,7 @@ agent-mux/
 - Server cleanup on exit (kill all PTYs)
 
 **Out of scope (future):**
+
 - Notification system (Claude Code hooks, blue/red dots)
 - Tauri desktop app wrapping
 - Config file for predefined projects

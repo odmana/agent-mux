@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync, unlinkSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
+
 import { getAllSessions } from './sessions.js';
 
 export type NotificationState = 'none' | 'idle' | 'permission' | 'working';
@@ -29,13 +30,18 @@ function normalizePath(p: string): string {
   // Convert backslashes to forward slashes
   normalized = normalized.replace(/\\/g, '/');
   // Convert MSYS-style /c/... to C:/...
-  normalized = normalized.replace(/^\/([a-zA-Z])\//, (_, drive: string) => `${drive.toUpperCase()}:/`);
+  normalized = normalized.replace(
+    /^\/([a-zA-Z])\//,
+    (_, drive: string) => `${drive.toUpperCase()}:/`,
+  );
   // Uppercase drive letter for consistent comparison
   normalized = normalized.replace(/^([a-zA-Z]):/, (_, drive: string) => `${drive.toUpperCase()}:`);
   return normalized;
 }
 
-function parseStateFile(filePath: string): { event: 'idle' | 'permission' | 'working'; directory: string } | null {
+function parseStateFile(
+  filePath: string,
+): { event: 'idle' | 'permission' | 'working'; directory: string } | null {
   try {
     const content = readFileSync(filePath, 'utf-8').trim();
     const spaceIndex = content.indexOf(' ');
@@ -63,7 +69,7 @@ function parseStateFile(filePath: string): { event: 'idle' | 'permission' | 'wor
 function matchSessionByDirectory(directory: string): string | null {
   const sessions = getAllSessions();
   const normalized = normalizePath(directory);
-  const match = sessions.find(s => normalizePath(s.directory) === normalized);
+  const match = sessions.find((s) => normalizePath(s.directory) === normalized);
   return match?.id ?? null;
 }
 
@@ -77,7 +83,7 @@ interface StateFileEntry {
 function poll(): void {
   let files: string[];
   try {
-    files = readdirSync(TMP_DIR).filter(f => FILE_PATTERN.test(f));
+    files = readdirSync(TMP_DIR).filter((f) => FILE_PATTERN.test(f));
   } catch {
     return;
   }
@@ -187,4 +193,3 @@ export function clearIfPermission(sessionId: string): void {
     onStateChange?.(sessionId, 'working');
   }
 }
-

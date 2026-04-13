@@ -55,9 +55,9 @@ Optional `config.json` in the repo root (gitignored):
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl/Cmd + Shift + N` | New session |
+| Shortcut                 | Action                  |
+| ------------------------ | ----------------------- |
+| `Ctrl/Cmd + Shift + N`   | New session             |
 | `Ctrl/Cmd + Shift + 1-9` | Switch to tab by number |
 
 Shortcut hints are shown as keycap badges on each tab (1-9) and the "New session" button.

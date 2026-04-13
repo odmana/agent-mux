@@ -21,7 +21,7 @@ function HighlightedName({ path, matchIndices }: DirectorySuggestion) {
       <span className="text-white/30">{prefix}</span>
       {matchIndices.length > 0
         ? [...name].map((char, i) => (
-            <span key={i} className={indexSet.has(i) ? 'text-blue-400 font-semibold' : ''}>
+            <span key={i} className={indexSet.has(i) ? 'font-semibold text-blue-400' : ''}>
               {char}
             </span>
           ))
@@ -80,31 +80,34 @@ export default function DirectoryPicker({ onConfirm, onCancel }: DirectoryPicker
   };
 
   return (
-    <div className="absolute inset-0 bg-black/60 flex items-start justify-center pt-[20vh] z-10" onClick={onCancel}>
+    <div
+      className="absolute inset-0 z-10 flex items-start justify-center bg-black/60 pt-[20vh]"
+      onClick={onCancel}
+    >
       <div
-        className="bg-[#1a1a1a] border border-white/10 rounded-xl w-[500px] shadow-2xl"
+        className="w-[500px] rounded-xl border border-white/10 bg-[#1a1a1a] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4">
-          <label className="text-sm text-white/50 mb-2 block">Directory path</label>
+          <label className="mb-2 block text-sm text-white/50">Directory path</label>
           <input
             ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full bg-white/[0.05] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white/90 outline-none focus:border-blue-400/50 font-mono"
+            className="w-full rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2.5 font-mono text-sm text-white/90 outline-none focus:border-blue-400/50"
             placeholder="~/projects/my-app"
           />
         </div>
 
         {suggestions.length > 0 && (
-          <div className="border-t border-white/[0.06] max-h-60 overflow-y-auto">
+          <div className="max-h-60 overflow-y-auto border-t border-white/[0.06]">
             {suggestions.map((s, i) => (
               <div
                 key={s.path}
                 onClick={() => setInput(s.path + '/')}
-                className={`px-4 py-2 text-sm cursor-pointer font-mono ${
+                className={`cursor-pointer px-4 py-2 font-mono text-sm ${
                   i === selectedIndex
                     ? 'bg-white/[0.07] text-white/90'
                     : 'text-white/40 hover:bg-white/[0.04]'
@@ -116,7 +119,7 @@ export default function DirectoryPicker({ onConfirm, onCancel }: DirectoryPicker
           </div>
         )}
 
-        <div className="p-3 border-t border-white/[0.06] flex justify-between text-[11px] text-white/25">
+        <div className="flex justify-between border-t border-white/[0.06] p-3 text-[11px] text-white/25">
           <span>Tab: accept · Enter: confirm · Esc: cancel</span>
         </div>
       </div>

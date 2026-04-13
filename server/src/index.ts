@@ -1,12 +1,18 @@
-import express from 'express';
 import { createServer, IncomingMessage } from 'node:http';
-import { WebSocketServer, WebSocket } from 'ws';
 import { resolve } from 'node:path';
+
+import express from 'express';
+import { WebSocketServer, WebSocket } from 'ws';
+
 import { loadConfig } from './config.js';
+import {
+  startNotificationWatcher,
+  stopNotificationWatcher,
+  clearIfPermission,
+} from './notification-watcher.js';
+import { resizePty } from './pty-manager.js';
 import { createRouter } from './routes.js';
 import { getSession, killAllSessions, onBranchChange, type Session } from './sessions.js';
-import { resizePty } from './pty-manager.js';
-import { startNotificationWatcher, stopNotificationWatcher, clearIfPermission } from './notification-watcher.js';
 
 const config = loadConfig();
 const app = express();
@@ -156,9 +162,18 @@ function cleanup() {
   server.close();
 }
 
-process.on('SIGINT', () => { cleanup(); process.exit(0); });
-process.on('SIGTERM', () => { cleanup(); process.exit(0); });
-process.on('SIGHUP', () => { cleanup(); process.exit(0); });
+process.on('SIGINT', () => {
+  cleanup();
+  process.exit(0);
+});
+process.on('SIGTERM', () => {
+  cleanup();
+  process.exit(0);
+});
+process.on('SIGHUP', () => {
+  cleanup();
+  process.exit(0);
+});
 process.on('uncaughtException', (err) => {
   console.error('agent-mux crashed:', err);
   cleanup();

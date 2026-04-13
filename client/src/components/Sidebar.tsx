@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef } from 'react';
-import type { Session, NotificationState } from '../types';
-import TabItem from './TabItem';
+
 import { uiColors } from '../terminal-config';
+import type { Session, NotificationState } from '../types';
 import Kbd from './Kbd';
+import TabItem from './TabItem';
 
 const MIN_WIDTH = 180;
 const MAX_WIDTH = 400;
@@ -87,8 +88,14 @@ export default function Sidebar({
 
   return (
     <div
-      className="flex flex-col relative"
-      style={{ width, minWidth: MIN_WIDTH, maxWidth: MAX_WIDTH, background: uiColors.sidebarBg, borderRight: `1px solid ${uiColors.sidebarBorder}` }}
+      className="relative flex flex-col"
+      style={{
+        width,
+        minWidth: MIN_WIDTH,
+        maxWidth: MAX_WIDTH,
+        background: uiColors.sidebarBg,
+        borderRight: `1px solid ${uiColors.sidebarBorder}`,
+      }}
     >
       <div className="px-4 pt-5 pb-2">
         <h2
@@ -99,7 +106,7 @@ export default function Sidebar({
         </h2>
       </div>
 
-      <div className="flex-1 px-2 pb-2 flex flex-col gap-1 overflow-y-auto">
+      <div className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 pb-2">
         {sessions.map((session, index) => (
           <div
             key={session.id}
@@ -108,14 +115,10 @@ export default function Sidebar({
             onDragOver={(e) => handleDragOver(e, index)}
             onDrop={() => handleDrop(index)}
             onDragEnd={handleDragEnd}
-            className={`transition-opacity ${
-              dragIndex === index ? 'opacity-30' : ''
-            }`}
+            className={`transition-opacity ${dragIndex === index ? 'opacity-30' : ''}`}
             style={{
               borderTop: `2px solid ${
-                overIndex === index && dragIndex !== index
-                  ? uiColors.accent
-                  : 'transparent'
+                overIndex === index && dragIndex !== index ? uiColors.accent : 'transparent'
               }`,
             }}
           >
@@ -134,7 +137,7 @@ export default function Sidebar({
       <div className="p-2">
         <button
           onClick={onNewTab}
-          className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg text-sm transition-all"
+          className="flex w-full items-center justify-center gap-2 rounded-lg p-2.5 text-sm transition-all"
           style={{
             color: uiColors.textDim,
             border: `1px dashed ${uiColors.sidebarBorder}`,
@@ -157,7 +160,7 @@ export default function Sidebar({
       {/* Resize handle */}
       <div
         onMouseDown={handleResizeStart}
-        className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-white/10 transition-colors"
+        className="absolute top-0 right-0 h-full w-1 cursor-col-resize transition-colors hover:bg-white/10"
       />
     </div>
   );

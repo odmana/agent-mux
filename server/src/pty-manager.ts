@@ -1,11 +1,6 @@
 import { spawn, type IPty } from 'node-pty';
 
-export function createPty(
-  shell: string,
-  cwd: string,
-  cols: number,
-  rows: number,
-): IPty {
+export function createPty(shell: string, cwd: string, cols: number, rows: number): IPty {
   return spawn(shell, [], {
     cwd,
     cols,

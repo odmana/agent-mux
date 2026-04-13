@@ -1,17 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { Session, NotificationState } from './types';
-import Sidebar from './components/Sidebar';
-import TerminalPane from './components/TerminalPane';
+
 import DirectoryPicker from './components/DirectoryPicker';
 import HooksBanner from './components/HooksBanner';
-import { uiColors } from './terminal-config';
 import Kbd from './components/Kbd';
+import Sidebar from './components/Sidebar';
+import TerminalPane from './components/TerminalPane';
+import { uiColors } from './terminal-config';
+import type { Session, NotificationState } from './types';
 
 export default function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
-  const [notificationStates, setNotificationStates] = useState<Record<string, NotificationState>>({});
+  const [notificationStates, setNotificationStates] = useState<Record<string, NotificationState>>(
+    {},
+  );
   const activeIdRef = useRef(activeId);
   activeIdRef.current = activeId;
   const sessionsRef = useRef(sessions);
@@ -53,16 +56,16 @@ export default function App() {
   };
 
   const handleNotification = useCallback((sessionId: string, state: NotificationState) => {
-    setNotificationStates(prev => ({ ...prev, [sessionId]: state }));
+    setNotificationStates((prev) => ({ ...prev, [sessionId]: state }));
   }, []);
 
   const handleBranchUpdate = useCallback((sessionId: string, branch: string) => {
-    setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, branch } : s));
+    setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, branch } : s)));
   }, []);
 
   const handleSelectSession = useCallback((id: string) => {
     setActiveId(id);
-    setNotificationStates(prev => {
+    setNotificationStates((prev) => {
       const next = { ...prev };
       let changed = false;
       // Clear idle on the tab we're leaving
@@ -117,7 +120,7 @@ export default function App() {
       }
       return remaining;
     });
-    setNotificationStates(prev => {
+    setNotificationStates((prev) => {
       const next = { ...prev };
       delete next[id];
       return next;
@@ -125,48 +128,51 @@ export default function App() {
   };
 
   return (
-    <div className="h-full flex" style={{ background: uiColors.pageBg, color: uiColors.textPrimary }}>
-        <Sidebar
-          sessions={sessions}
-          activeId={activeId}
-          notificationStates={notificationStates}
-          onSelectSession={handleSelectSession}
-          onCloseSession={handleCloseSession}
-          onReorderSessions={setSessions}
-          onNewTab={() => setShowPicker(true)}
-        />
+    <div
+      className="flex h-full"
+      style={{ background: uiColors.pageBg, color: uiColors.textPrimary }}
+    >
+      <Sidebar
+        sessions={sessions}
+        activeId={activeId}
+        notificationStates={notificationStates}
+        onSelectSession={handleSelectSession}
+        onCloseSession={handleCloseSession}
+        onReorderSessions={setSessions}
+        onNewTab={() => setShowPicker(true)}
+      />
 
-        <div className="flex-1 relative min-w-0">
-            <HooksBanner />
+      <div className="relative min-w-0 flex-1">
+        <HooksBanner />
 
-            {sessions.length === 0 && !showPicker && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-sm" style={{ color: uiColors.textDim }}>
-                <span>Open a tab to get started</span>
-                <span className="flex items-center gap-1 mt-1">
-                  <Kbd>{navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'}</Kbd>
-                  <Kbd>Shift</Kbd>
-                  <Kbd>N</Kbd>
-                </span>
-              </div>
-            )}
+        {sessions.length === 0 && !showPicker && (
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-sm"
+            style={{ color: uiColors.textDim }}
+          >
+            <span>Open a tab to get started</span>
+            <span className="mt-1 flex items-center gap-1">
+              <Kbd>{navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'}</Kbd>
+              <Kbd>Shift</Kbd>
+              <Kbd>N</Kbd>
+            </span>
+          </div>
+        )}
 
-            {sessions.map((session) => (
-              <TerminalPane
-                key={session.id}
-                session={session}
-                isActive={session.id === activeId}
-                onNotification={handleNotification}
-                onBranchUpdate={handleBranchUpdate}
-              />
-            ))}
+        {sessions.map((session) => (
+          <TerminalPane
+            key={session.id}
+            session={session}
+            isActive={session.id === activeId}
+            onNotification={handleNotification}
+            onBranchUpdate={handleBranchUpdate}
+          />
+        ))}
 
-            {showPicker && (
-              <DirectoryPicker
-                onConfirm={handleNewSession}
-                onCancel={() => setShowPicker(false)}
-              />
-            )}
-        </div>
+        {showPicker && (
+          <DirectoryPicker onConfirm={handleNewSession} onCancel={() => setShowPicker(false)} />
+        )}
+      </div>
     </div>
   );
 }

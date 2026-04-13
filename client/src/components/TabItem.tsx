@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import type { Session, NotificationState } from '../types';
+
 import { uiColors } from '../terminal-config';
+import type { Session, NotificationState } from '../types';
 import Kbd from './Kbd';
 
 interface TabItemProps {
@@ -12,25 +13,37 @@ interface TabItemProps {
   onClose: () => void;
 }
 
-export default function TabItem({ session, isActive, notificationState, index, onClick, onClose }: TabItemProps) {
+export default function TabItem({
+  session,
+  isActive,
+  notificationState,
+  index,
+  onClick,
+  onClose,
+}: TabItemProps) {
   const [confirming, setConfirming] = useState(false);
-  const displayName = session.directory.replace(/[\\/]+$/, '').split(/[\\/]/).pop() || session.directory;
+  const displayName =
+    session.directory
+      .replace(/[\\/]+$/, '')
+      .split(/[\\/]/)
+      .pop() || session.directory;
 
   // Green/red dots: all tabs. Blue dots: background tabs only.
   const showDot =
     (notificationState === 'idle' && !isActive) ||
     notificationState === 'working' ||
     notificationState === 'permission';
-  const dotColor = notificationState === 'permission'
-    ? uiColors.notificationPermission
-    : notificationState === 'working'
-      ? uiColors.notificationWorking
-      : uiColors.notificationIdle;
+  const dotColor =
+    notificationState === 'permission'
+      ? uiColors.notificationPermission
+      : notificationState === 'working'
+        ? uiColors.notificationWorking
+        : uiColors.notificationIdle;
 
   return (
     <div
       onClick={onClick}
-      className="group px-3 py-2.5 rounded-lg cursor-pointer transition-all"
+      className="group cursor-pointer rounded-lg px-3 py-2.5 transition-all"
       style={{
         background: isActive ? uiColors.activeBg : 'transparent',
         border: `1px solid ${isActive ? uiColors.activeBorder : 'transparent'}`,
@@ -44,23 +57,39 @@ export default function TabItem({ session, isActive, notificationState, index, o
     >
       {confirming ? (
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs" style={{ color: uiColors.textMuted }}>Close session?</span>
+          <span className="text-xs" style={{ color: uiColors.textMuted }}>
+            Close session?
+          </span>
           <div className="flex gap-1">
             <button
-              onClick={(e) => { e.stopPropagation(); onClose(); }}
-              className="px-2 py-0.5 rounded text-xs transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className="rounded px-2 py-0.5 text-xs transition-colors"
               style={{ background: uiColors.dangerBg, color: uiColors.dangerText }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = uiColors.dangerHoverBg; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = uiColors.dangerBg; }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = uiColors.dangerHoverBg;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = uiColors.dangerBg;
+              }}
             >
               Yes
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); setConfirming(false); }}
-              className="px-2 py-0.5 rounded text-xs transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirming(false);
+              }}
+              className="rounded px-2 py-0.5 text-xs transition-colors"
               style={{ background: uiColors.activeBg, color: uiColors.textMuted }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = uiColors.activeBorder; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = uiColors.activeBg; }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = uiColors.activeBorder;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = uiColors.activeBg;
+              }}
             >
               No
             </button>
@@ -69,19 +98,22 @@ export default function TabItem({ session, isActive, notificationState, index, o
       ) : (
         <>
           <div className="flex items-start justify-between gap-1">
-            <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex min-w-0 items-center gap-1.5">
               {showDot && (
                 <span
-                  className="shrink-0 inline-block w-2 h-2 rounded-full mt-1"
+                  className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full"
                   style={{
                     background: dotColor,
                     boxShadow: `0 0 6px ${dotColor}, 0 0 2px ${dotColor}`,
-                    animation: notificationState === 'permission' ? 'pulse-glow 2s ease-in-out infinite' : undefined,
+                    animation:
+                      notificationState === 'permission'
+                        ? 'pulse-glow 2s ease-in-out infinite'
+                        : undefined,
                   }}
                 />
               )}
               <span
-                className="text-sm font-medium truncate"
+                className="truncate text-sm font-medium"
                 style={{ color: isActive ? uiColors.textPrimary : uiColors.textMuted }}
                 title={session.directory}
               >
@@ -89,16 +121,23 @@ export default function TabItem({ session, isActive, notificationState, index, o
               </span>
             </div>
             <button
-              onClick={(e) => { e.stopPropagation(); setConfirming(true); }}
-              className="shrink-0 text-xs w-[18px] h-[18px] flex items-center justify-center rounded transition-all opacity-0 group-hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirming(true);
+              }}
+              className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded text-xs opacity-0 transition-all group-hover:opacity-100"
               style={{ color: uiColors.textDim }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = uiColors.textMuted; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = uiColors.textDim; }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = uiColors.textMuted;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = uiColors.textDim;
+              }}
             >
               ×
             </button>
           </div>
-          <div className="flex items-center gap-1 mt-1">
+          <div className="mt-1 flex items-center gap-1">
             <svg
               width="12"
               height="12"
@@ -113,7 +152,7 @@ export default function TabItem({ session, isActive, notificationState, index, o
               <path d="M4 5.5C4 8 6 8 12 5.5" stroke="currentColor" strokeWidth="1.2" fill="none" />
             </svg>
             <span
-              className="uppercase tracking-wide text-xs font-mono"
+              className="font-mono text-xs tracking-wide uppercase"
               style={{ color: isActive ? uiColors.textMuted : uiColors.textDim }}
             >
               {session.branch || 'not git tracked'}

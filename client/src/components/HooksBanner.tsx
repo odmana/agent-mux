@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+
 import { uiColors } from '../terminal-config';
 
 type BannerState =
@@ -14,8 +15,8 @@ export default function HooksBanner() {
 
   useEffect(() => {
     fetch('/api/hooks/status')
-      .then(res => res.json())
-      .then(status => {
+      .then((res) => res.json())
+      .then((status) => {
         if (status.configured) {
           setState({ kind: 'hidden' });
         } else if (status.error) {
@@ -66,9 +67,7 @@ export default function HooksBanner() {
     >
       <div style={{ flex: 1, fontSize: '13px' }}>
         {state.kind === 'installed' ? (
-          <span style={{ color: uiColors.notificationWorking }}>
-            Hooks installed successfully.
-          </span>
+          <span style={{ color: uiColors.notificationWorking }}>Hooks installed successfully.</span>
         ) : state.kind === 'error' ? (
           <span style={{ color: uiColors.textMuted }}>{state.message}</span>
         ) : (

@@ -20,10 +20,7 @@ function isWordBoundary(candidate: string, index: number): boolean {
   return false;
 }
 
-export function fuzzyMatch(
-  pattern: string,
-  candidate: string,
-): FuzzyResult | null {
+export function fuzzyMatch(pattern: string, candidate: string): FuzzyResult | null {
   if (pattern.length === 0) {
     return { text: candidate, score: 0, matchIndices: [] };
   }
@@ -70,10 +67,7 @@ export function fuzzyMatch(
   return { text: candidate, score, matchIndices };
 }
 
-export function fuzzySort(
-  pattern: string,
-  candidates: string[],
-): FuzzyResult[] {
+export function fuzzySort(pattern: string, candidates: string[]): FuzzyResult[] {
   const results: FuzzyResult[] = [];
   for (const c of candidates) {
     const result = fuzzyMatch(pattern, c);
