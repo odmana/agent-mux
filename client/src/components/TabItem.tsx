@@ -12,7 +12,7 @@ interface TabItemProps {
 
 export default function TabItem({ session, isActive, notificationState, onClick, onClose }: TabItemProps) {
   const [confirming, setConfirming] = useState(false);
-  const displayPath = session.directory.replace(/^\/Users\/\w+/, '~');
+  const displayName = session.directory.replace(/[\\/]+$/, '').split(/[\\/]/).pop() || session.directory;
 
   // Blue dots: background tabs only. Red dots: all tabs.
   const showDot =
@@ -80,7 +80,7 @@ export default function TabItem({ session, isActive, notificationState, onClick,
                 style={{ color: isActive ? uiColors.textPrimary : uiColors.textMuted }}
                 title={session.directory}
               >
-                {displayPath}
+                {displayName}
               </span>
             </div>
             <button
