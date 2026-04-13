@@ -4,11 +4,33 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --parallel -r run dev",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "fmt": "oxfmt .",
+    "fmt:check": "oxfmt --check .",
+    "check": "pnpm lint && pnpm fmt:check",
+    "prepare": "simple-git-hooks",
     "postinstall": "[ \"$(uname)\" != \"Windows_NT\" ] && chmod +x ./node_modules/.pnpm/node-pty@*/node_modules/node-pty/prebuilds/*/spawn-helper 2>/dev/null || true"
+  },
+  "devDependencies": {
+    "lint-staged": "16.4.0",
+    "oxfmt": "0.44.0",
+    "oxlint": "1.59.0",
+    "simple-git-hooks": "2.13.1"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint-staged"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "oxlint --fix",
+      "oxfmt"
+    ]
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "node-pty"
+      "node-pty",
+      "simple-git-hooks"
     ]
   }
 }
