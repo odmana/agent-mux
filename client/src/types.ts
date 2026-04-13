@@ -1,4 +1,4 @@
-export type NotificationState = 'none' | 'idle' | 'permission';
+export type NotificationState = 'none' | 'idle' | 'permission' | 'working';
 
 export interface Session {
   id: string;

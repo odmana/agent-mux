@@ -29,6 +29,7 @@ export const uiColors = {
   // Notification dots
   notificationIdle: '#81a1c1',
   notificationPermission: '#bf616a',
+  notificationWorking: '#a3be8c',
 };
 
 export const terminalConfig: TerminalConfig = {

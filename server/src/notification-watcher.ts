@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { getAllSessions } from './sessions.js';
 
-export type NotificationState = 'none' | 'idle' | 'permission';
+export type NotificationState = 'none' | 'idle' | 'permission' | 'working';
 
 interface WatcherOptions {
   onStateChange: (sessionId: string, state: NotificationState) => void;
@@ -35,7 +35,7 @@ function normalizePath(p: string): string {
   return normalized;
 }
 
-function parseStateFile(filePath: string): { event: 'idle' | 'permission'; directory: string } | null {
+function parseStateFile(filePath: string): { event: 'idle' | 'permission' | 'working'; directory: string } | null {
   try {
     const content = readFileSync(filePath, 'utf-8').trim();
     const spaceIndex = content.indexOf(' ');
@@ -49,6 +49,9 @@ function parseStateFile(filePath: string): { event: 'idle' | 'permission'; direc
     }
     if (eventStr === 'permission' || eventStr === 'permission_prompt') {
       return { event: 'permission', directory: normalizePath(directory) };
+    }
+    if (eventStr === 'working') {
+      return { event: 'working', directory: normalizePath(directory) };
     }
 
     return null;
@@ -66,7 +69,7 @@ function matchSessionByDirectory(directory: string): string | null {
 
 interface StateFileEntry {
   filePath: string;
-  event: 'idle' | 'permission';
+  event: 'idle' | 'permission' | 'working';
   sessionId: string;
   mtime: number;
 }
@@ -180,8 +183,8 @@ export function stopNotificationWatcher(): void {
  */
 export function clearIfPermission(sessionId: string): void {
   if (states.get(sessionId) === 'permission') {
-    states.set(sessionId, 'none');
-    onStateChange?.(sessionId, 'none');
+    states.set(sessionId, 'working');
+    onStateChange?.(sessionId, 'working');
   }
 }
 

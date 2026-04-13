@@ -56,12 +56,21 @@ export default function App() {
 
   const handleSelectSession = useCallback((id: string) => {
     setActiveId(id);
-    // Clear blue (idle) dots when switching to a tab
     setNotificationStates(prev => {
-      if (prev[id] === 'idle') {
-        return { ...prev, [id]: 'none' };
+      const next = { ...prev };
+      let changed = false;
+      // Clear idle on the tab we're leaving
+      const prevId = activeIdRef.current;
+      if (prevId && next[prevId] === 'idle') {
+        next[prevId] = 'none';
+        changed = true;
       }
-      return prev;
+      // Clear idle/working on the tab we're switching to
+      if (next[id] === 'idle' || next[id] === 'working') {
+        next[id] = 'none';
+        changed = true;
+      }
+      return changed ? next : prev;
     });
   }, []);
 

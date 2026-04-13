@@ -14,13 +14,16 @@ export default function TabItem({ session, isActive, notificationState, onClick,
   const [confirming, setConfirming] = useState(false);
   const displayName = session.directory.replace(/[\\/]+$/, '').split(/[\\/]/).pop() || session.directory;
 
-  // Blue dots: background tabs only. Red dots: all tabs.
+  // Green/red dots: all tabs. Blue dots: background tabs only.
   const showDot =
     (notificationState === 'idle' && !isActive) ||
+    notificationState === 'working' ||
     notificationState === 'permission';
   const dotColor = notificationState === 'permission'
     ? uiColors.notificationPermission
-    : uiColors.notificationIdle;
+    : notificationState === 'working'
+      ? uiColors.notificationWorking
+      : uiColors.notificationIdle;
 
   return (
     <div
@@ -67,7 +70,7 @@ export default function TabItem({ session, isActive, notificationState, onClick,
             <div className="flex items-center gap-1.5 min-w-0">
               {showDot && (
                 <span
-                  className="shrink-0 inline-block w-2 h-2 rounded-full"
+                  className="shrink-0 inline-block w-2 h-2 rounded-full mt-1"
                   style={{
                     background: dotColor,
                     boxShadow: `0 0 6px ${dotColor}, 0 0 2px ${dotColor}`,

@@ -40,22 +40,43 @@ Optional `config.json` in the repo root (gitignored):
 
 ## Notification Dots
 
-Session tabs show colored dots when Claude Code in a background tab needs attention:
+Session tabs show colored dots reflecting Claude Code state:
 
+- **Green dot** -- Claude Code is actively working, processing a prompt (background tabs only)
 - **Blue dot** -- Claude Code is idle, waiting for user input (background tabs only)
 - **Red pulsing dot** -- Claude Code needs permission to proceed (all tabs)
 
-Blue dots clear when you switch to the tab. Red dots clear only when Claude resumes output after permission is granted.
+Green and blue dots clear when you switch to the tab. Red dots clear only when Claude resumes output after permission is granted.
 
 ### Required Hook Setup
 
-Notification dots require hooks in `~/.claude/settings.json`. Add these entries to the `hooks.Notification` array.
+Notification dots require hooks in `~/.claude/settings.json`. Add these entries to your `hooks` object.
 
 **macOS / Linux:**
 
 ```json
 {
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"working $(pwd)\" > \"/tmp/agent-mux-$$.state\" # agent-mux"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"idle $(pwd)\" > \"/tmp/agent-mux-$$.state\" # agent-mux"
+          }
+        ]
+      }
+    ],
     "Notification": [
       {
         "matcher": "idle_prompt",
@@ -85,6 +106,26 @@ Notification dots require hooks in `~/.claude/settings.json`. Add these entries 
 ```json
 {
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"working $(pwd)\" > \"$TEMP/agent-mux-$$.state\" # agent-mux"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"idle $(pwd)\" > \"$TEMP/agent-mux-$$.state\" # agent-mux"
+          }
+        ]
+      }
+    ],
     "Notification": [
       {
         "matcher": "idle_prompt",
@@ -109,9 +150,9 @@ Notification dots require hooks in `~/.claude/settings.json`. Add these entries 
 }
 ```
 
-If you already have other entries in the `Notification` array, append these two alongside them. The `# agent-mux` comment is a marker -- do not remove it.
+If you already have other entries in these hook arrays, append the agent-mux entries alongside them. The `# agent-mux` comment is a marker -- do not remove it.
 
-Without these hooks, the tabs will still work but no notification dots will appear.
+Without these hooks, the tabs will still work but no notification dots will appear. The `UserPromptSubmit` and `Stop` hooks are optional -- they enable the green "working" dot. The `Notification` hooks are needed for blue idle and red permission dots.
 
 ## Project Structure
 
