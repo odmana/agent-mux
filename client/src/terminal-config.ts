@@ -11,7 +11,7 @@ export interface TerminalConfig {
 export const uiColors = {
   // Page and sidebar backgrounds — darker shades of the terminal background
   pageBg: '#2e3440',
-  sidebarBg: '#2b303b',
+  sidebarBg: '#252a34',
   sidebarBorder: '#3b4252',
   // Text
   textPrimary: '#d8dee9',

@@ -1,8 +1,22 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { Session, NotificationState } from '../types';
 import TabItem from './TabItem';
 import { uiColors } from '../terminal-config';
 import Kbd from './Kbd';
+
+const MIN_WIDTH = 180;
+const MAX_WIDTH = 400;
+const DEFAULT_WIDTH = 240;
+const STORAGE_KEY = 'sidebar-width';
+
+function loadWidth(): number {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    const n = parseInt(stored, 10);
+    if (n >= MIN_WIDTH && n <= MAX_WIDTH) return n;
+  }
+  return DEFAULT_WIDTH;
+}
 
 interface SidebarProps {
   sessions: Session[];
@@ -23,8 +37,31 @@ export default function Sidebar({
   onReorderSessions,
   onNewTab,
 }: SidebarProps) {
+  const [width, setWidth] = useState(loadWidth);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  const widthRef = useRef(width);
+  widthRef.current = width;
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = widthRef.current;
+    document.body.style.userSelect = 'none';
+
+    const onMouseMove = (ev: MouseEvent) => {
+      const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + ev.clientX - startX));
+      setWidth(newWidth);
+    };
+    const onMouseUp = () => {
+      document.body.style.userSelect = '';
+      localStorage.setItem(STORAGE_KEY, String(widthRef.current));
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, []);
 
   const handleDragStart = (index: number) => {
     setDragIndex(index);
@@ -50,12 +87,12 @@ export default function Sidebar({
 
   return (
     <div
-      className="w-60 min-w-60 flex flex-col"
-      style={{ background: uiColors.sidebarBg, borderRight: `1px solid ${uiColors.sidebarBorder}` }}
+      className="flex flex-col relative"
+      style={{ width, minWidth: MIN_WIDTH, maxWidth: MAX_WIDTH, background: uiColors.sidebarBg, borderRight: `1px solid ${uiColors.sidebarBorder}` }}
     >
       <div className="px-4 pt-5 pb-2">
         <h2
-          className="text-[11px] font-semibold tracking-[0.12em] uppercase"
+          className="text-xs font-semibold tracking-[0.12em] uppercase"
           style={{ color: uiColors.textDim }}
         >
           Terminal Sessions
@@ -116,6 +153,12 @@ export default function Sidebar({
           <Kbd className="ml-auto">N</Kbd>
         </button>
       </div>
+
+      {/* Resize handle */}
+      <div
+        onMouseDown={handleResizeStart}
+        className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-white/10 transition-colors"
+      />
     </div>
   );
 }
