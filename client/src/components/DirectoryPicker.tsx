@@ -1,13 +1,38 @@
 import { useState, useEffect, useRef } from 'react';
 
+interface DirectorySuggestion {
+  path: string;
+  matchIndices: number[];
+}
+
 interface DirectoryPickerProps {
   onConfirm: (directory: string) => void;
   onCancel: () => void;
 }
 
+function HighlightedName({ path, matchIndices }: DirectorySuggestion) {
+  const lastSlash = path.lastIndexOf('/');
+  const prefix = path.slice(0, lastSlash + 1);
+  const name = path.slice(lastSlash + 1);
+  const indexSet = new Set(matchIndices);
+
+  return (
+    <span>
+      <span className="text-white/30">{prefix}</span>
+      {matchIndices.length > 0
+        ? [...name].map((char, i) => (
+            <span key={i} className={indexSet.has(i) ? 'text-blue-400 font-semibold' : ''}>
+              {char}
+            </span>
+          ))
+        : name}
+    </span>
+  );
+}
+
 export default function DirectoryPicker({ onConfirm, onCancel }: DirectoryPickerProps) {
   const [input, setInput] = useState('~/');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<DirectorySuggestion[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -26,7 +51,7 @@ export default function DirectoryPicker({ onConfirm, onCancel }: DirectoryPicker
       signal: controller.signal,
     })
       .then((res) => res.json())
-      .then((dirs: string[]) => {
+      .then((dirs: DirectorySuggestion[]) => {
         setSuggestions(dirs);
         setSelectedIndex(0);
       })
@@ -43,7 +68,7 @@ export default function DirectoryPicker({ onConfirm, onCancel }: DirectoryPicker
     } else if (e.key === 'Tab') {
       e.preventDefault();
       if (suggestions.length > 0) {
-        setInput(suggestions[selectedIndex] + '/');
+        setInput(suggestions[selectedIndex].path + '/');
       }
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -75,17 +100,17 @@ export default function DirectoryPicker({ onConfirm, onCancel }: DirectoryPicker
 
         {suggestions.length > 0 && (
           <div className="border-t border-white/[0.06] max-h-60 overflow-y-auto">
-            {suggestions.map((dir, i) => (
+            {suggestions.map((s, i) => (
               <div
-                key={dir}
-                onClick={() => setInput(dir + '/')}
+                key={s.path}
+                onClick={() => setInput(s.path + '/')}
                 className={`px-4 py-2 text-sm cursor-pointer font-mono ${
                   i === selectedIndex
                     ? 'bg-white/[0.07] text-white/90'
                     : 'text-white/40 hover:bg-white/[0.04]'
                 }`}
               >
-                {dir}
+                <HighlightedName path={s.path} matchIndices={s.matchIndices} />
               </div>
             ))}
           </div>

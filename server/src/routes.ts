@@ -8,12 +8,19 @@ import {
   getSession,
   deleteSession,
 } from './sessions.js';
+import { fuzzyMatch } from './fuzzy-match.js';
 
-function expandTilde(path: string): string {
-  return path.startsWith('~') ? homedir() + path.slice(1) : path;
+export interface DirectorySuggestion {
+  path: string;
+  matchIndices: number[];
 }
 
-export function listDirectories(prefix: string): string[] {
+function expandTilde(path: string): string {
+  const expanded = path.startsWith('~') ? homedir() + path.slice(1) : path;
+  return expanded.replaceAll('\\', '/');
+}
+
+export function listDirectories(prefix: string): DirectorySuggestion[] {
   if (!prefix) return [];
 
   const expanded = expandTilde(prefix);
@@ -23,22 +30,33 @@ export function listDirectories(prefix: string): string[] {
       const entries = readdirSync(expanded, { withFileTypes: true });
       return entries
         .filter((e) => e.isDirectory() && !e.name.startsWith('.'))
-        .map((e) => expanded + e.name)
+        .map((e) => ({ path: expanded + e.name, matchIndices: [] }))
         .slice(0, 20);
     }
 
     const parent = dirname(expanded);
-    const partial = basename(expanded).toLowerCase();
+    const partial = basename(expanded);
     const entries = readdirSync(parent, { withFileTypes: true });
-    return entries
-      .filter(
-        (e) =>
-          e.isDirectory() &&
-          !e.name.startsWith('.') &&
-          e.name.toLowerCase().startsWith(partial),
-      )
-      .map((e) => resolve(parent, e.name))
-      .slice(0, 20);
+    const matched: { path: string; score: number; matchIndices: number[] }[] =
+      [];
+    for (const e of entries) {
+      if (!e.isDirectory() || e.name.startsWith('.')) continue;
+      const result = fuzzyMatch(partial, e.name);
+      if (result) {
+        matched.push({
+          path: resolve(parent, e.name).replaceAll('\\', '/'),
+          score: result.score,
+          matchIndices: result.matchIndices,
+        });
+      }
+    }
+    matched.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.path.localeCompare(b.path);
+    });
+    return matched
+      .slice(0, 20)
+      .map(({ path, matchIndices }) => ({ path, matchIndices }));
   } catch {
     return [];
   }
