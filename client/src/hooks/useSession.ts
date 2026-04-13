@@ -40,11 +40,13 @@ export function useSession(
     const ws = new WebSocket(`${protocol}//${window.location.host}/ws/${sessionId}`);
     wsRef.current = ws;
 
+    // oxlint-disable-next-line prefer-add-event-listener -- .on* is idiomatic for WebSocket; cleanup nulls out handlers to prevent writes to disposed terminal
     ws.onopen = () => {
       const { cols, rows } = terminal;
       ws.send(JSON.stringify({ type: 'resize', cols, rows }));
     };
 
+    // oxlint-disable-next-line prefer-add-event-listener
     ws.onmessage = (event) => {
       const data = event.data;
       if (typeof data === 'string' && data.startsWith('{')) {
@@ -65,10 +67,12 @@ export function useSession(
       terminal.write(data);
     };
 
+    // oxlint-disable-next-line prefer-add-event-listener
     ws.onerror = () => {
       terminal.write('\r\n\x1b[31mConnection error\x1b[0m\r\n');
     };
 
+    // oxlint-disable-next-line prefer-add-event-listener
     ws.onclose = () => {
       terminal.write('\r\n\x1b[33mDisconnected\x1b[0m\r\n');
     };
@@ -92,9 +96,13 @@ export function useSession(
     return () => {
       observer.disconnect();
       // Null out handlers before closing to prevent writes to a disposed terminal
+      // oxlint-disable-next-line prefer-add-event-listener
       ws.onopen = null;
+      // oxlint-disable-next-line prefer-add-event-listener
       ws.onmessage = null;
+      // oxlint-disable-next-line prefer-add-event-listener
       ws.onerror = null;
+      // oxlint-disable-next-line prefer-add-event-listener
       ws.onclose = null;
       ws.close();
       terminal.dispose();
@@ -102,7 +110,7 @@ export function useSession(
       fitAddonRef.current = null;
       wsRef.current = null;
     };
-  }, [sessionId]);
+  }, [sessionId, containerRef]);
 
   // Focus and fit when becoming active
   useEffect(() => {

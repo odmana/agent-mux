@@ -21,6 +21,7 @@ function HighlightedName({ path, matchIndices }: DirectorySuggestion) {
       <span className="text-white/30">{prefix}</span>
       {matchIndices.length > 0
         ? [...name].map((char, i) => (
+            // oxlint-disable-next-line no-array-index-key -- index is stable: mapping chars of a fixed string
             <span key={i} className={indexSet.has(i) ? 'font-semibold text-blue-400' : ''}>
               {char}
             </span>
