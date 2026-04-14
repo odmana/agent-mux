@@ -27,6 +27,19 @@ export function useSession(
 
     const terminal = new Terminal(terminalConfig);
 
+    // Let the browser handle Ctrl+C (copy when text is selected) and
+    // Ctrl+V / Ctrl+Shift+V (paste) instead of xterm consuming them.
+    // On Mac, Cmd+C/V is handled natively and doesn't set ctrlKey.
+    terminal.attachCustomKeyEventHandler((event) => {
+      if (event.ctrlKey && !event.metaKey && event.key === 'c' && terminal.hasSelection()) {
+        return false;
+      }
+      if (event.ctrlKey && !event.metaKey && (event.key === 'v' || event.key === 'V')) {
+        return false;
+      }
+      return true;
+    });
+
     const fitAddon = new FitAddon();
     terminal.loadAddon(fitAddon);
     terminal.open(container);
