@@ -1,7 +1,10 @@
+import { platform } from 'node:os';
+
 import { spawn, type IPty } from 'node-pty';
 
 export function createPty(shell: string, cwd: string, cols: number, rows: number): IPty {
-  return spawn(shell, [], {
+  const args = platform() === 'win32' ? [] : ['-l'];
+  return spawn(shell, args, {
     cwd,
     cols,
     rows,

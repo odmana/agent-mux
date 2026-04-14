@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync, unlinkSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { platform } from 'node:os';
 import { resolve } from 'node:path';
 
 import { getAllSessions } from './sessions.js';
@@ -10,7 +10,7 @@ interface WatcherOptions {
   onStateChange: (sessionId: string, state: NotificationState) => void;
 }
 
-const TMP_DIR = tmpdir();
+const TMP_DIR = platform() === 'win32' ? (process.env.TEMP ?? process.env.TMP ?? '/tmp') : '/tmp';
 const FILE_PATTERN = /^agent-mux-(\d+)\.state$/;
 const POLL_INTERVAL_MS = 500;
 const STALE_FILE_MAX_AGE_MS = 60_000; // Delete unmatched files older than 60s
