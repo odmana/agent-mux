@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync, unlinkSync } from 'node:fs';
 import { platform } from 'node:os';
 import { resolve } from 'node:path';
 
-import { getAllSessions } from './sessions.js';
+import { getAllPrimarySessions } from './sessions.js';
 
 export type NotificationState = 'none' | 'idle' | 'permission' | 'working';
 
@@ -67,7 +67,7 @@ function parseStateFile(
 }
 
 function matchSessionByDirectory(directory: string): string | null {
-  const sessions = getAllSessions();
+  const sessions = getAllPrimarySessions();
   const normalized = normalizePath(directory);
   const match = sessions.find((s) => normalizePath(s.directory) === normalized);
   return match?.id ?? null;

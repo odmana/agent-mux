@@ -7,7 +7,14 @@ import { Router } from 'express';
 import { fuzzyMatch } from './fuzzy-match.js';
 import { checkHooksStatus, installHooks } from './hooks-setup.js';
 import { clearSessionState } from './notification-watcher.js';
-import { createSession, getAllSessions, getSession, deleteSession } from './sessions.js';
+import {
+  createSession,
+  createAuxSession,
+  getAuxSession,
+  getAllPrimarySessions,
+  getSession,
+  deleteSession,
+} from './sessions.js';
 
 export interface DirectorySuggestion {
   path: string;
@@ -80,12 +87,36 @@ export function createRouter(shell: string): Router {
     });
   });
 
+  router.post('/api/sessions/:id/aux', (req, res) => {
+    const parent = getSession(req.params.id);
+    if (!parent) {
+      res.status(404).json({ error: 'parent session not found' });
+      return;
+    }
+    if (parent.parentId) {
+      res.status(400).json({ error: 'cannot create aux for an aux session' });
+      return;
+    }
+    const existing = getAuxSession(req.params.id);
+    if (existing) {
+      res.json({ id: existing.id, directory: existing.directory, branch: existing.branch });
+      return;
+    }
+    const aux = createAuxSession(req.params.id, shell);
+    res.status(201).json({ id: aux.id, directory: aux.directory, branch: aux.branch });
+  });
+
   router.get('/api/sessions', (_req, res) => {
-    const sessions = getAllSessions().map((s) => ({
-      id: s.id,
-      directory: s.directory,
-      branch: s.branch,
-    }));
+    const sessions = getAllPrimarySessions().map((s) => {
+      const aux = getAuxSession(s.id);
+      const entry: { id: string; directory: string; branch: string; auxId?: string } = {
+        id: s.id,
+        directory: s.directory,
+        branch: s.branch,
+      };
+      if (aux) entry.auxId = aux.id;
+      return entry;
+    });
     res.json(sessions);
   });
 
@@ -94,6 +125,8 @@ export function createRouter(shell: string): Router {
       res.status(404).json({ error: 'session not found' });
       return;
     }
+    const aux = getAuxSession(req.params.id);
+    if (aux) clearSessionState(aux.id);
     clearSessionState(req.params.id);
     deleteSession(req.params.id);
     res.status(204).end();

@@ -7,6 +7,7 @@ import Kbd from './Kbd';
 interface TabItemProps {
   session: Session;
   isActive: boolean;
+  isAuxActive: boolean;
   notificationState: NotificationState;
   index: number;
   onClick: () => void;
@@ -16,6 +17,7 @@ interface TabItemProps {
 export default function TabItem({
   session,
   isActive,
+  isAuxActive,
   notificationState,
   index,
   onClick,
@@ -30,7 +32,7 @@ export default function TabItem({
 
   // Green/red dots: all tabs. Blue dots: background tabs only.
   const showDot =
-    (notificationState === 'idle' && !isActive) ||
+    (notificationState === 'idle' && (!isActive || isAuxActive)) ||
     notificationState === 'working' ||
     notificationState === 'permission';
   const dotColor =
@@ -119,6 +121,18 @@ export default function TabItem({
               >
                 {displayName}
               </span>
+              {isAuxActive && (
+                <span
+                  className="shrink-0 rounded px-1 py-0.5 font-mono text-[9px] leading-none font-bold uppercase"
+                  style={{
+                    background: 'rgba(129, 161, 193, 0.15)',
+                    color: uiColors.accent,
+                    border: '1px solid rgba(129, 161, 193, 0.25)',
+                  }}
+                >
+                  aux
+                </span>
+              )}
             </div>
             <button
               onClick={(e) => {

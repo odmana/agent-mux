@@ -65,12 +65,12 @@ export function useSession(
       if (typeof data === 'string' && data.startsWith('{')) {
         try {
           const msg = JSON.parse(data);
-          if (msg.type === 'notification' && onNotificationRef.current) {
-            onNotificationRef.current(msg.sessionId, msg.state);
+          if (msg.type === 'notification') {
+            onNotificationRef.current?.(msg.sessionId, msg.state);
             return;
           }
-          if (msg.type === 'branch_update' && onBranchUpdateRef.current) {
-            onBranchUpdateRef.current(msg.sessionId, msg.branch);
+          if (msg.type === 'branch_update') {
+            onBranchUpdateRef.current?.(msg.sessionId, msg.branch);
             return;
           }
         } catch {

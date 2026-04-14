@@ -22,6 +22,7 @@ function loadWidth(): number {
 interface SidebarProps {
   sessions: Session[];
   activeId: string | null;
+  activeShell: Record<string, 'primary' | 'aux'>;
   notificationStates: Record<string, NotificationState>;
   onSelectSession: (id: string) => void;
   onCloseSession: (id: string) => void;
@@ -32,6 +33,7 @@ interface SidebarProps {
 export default function Sidebar({
   sessions,
   activeId,
+  activeShell,
   notificationStates,
   onSelectSession,
   onCloseSession,
@@ -125,6 +127,7 @@ export default function Sidebar({
             <TabItem
               session={session}
               isActive={session.id === activeId}
+              isAuxActive={activeShell[session.id] === 'aux'}
               notificationState={notificationStates[session.id] ?? 'none'}
               index={index}
               onClick={() => onSelectSession(session.id)}

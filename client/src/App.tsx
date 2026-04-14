@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
 
 import DirectoryPicker from './components/DirectoryPicker';
 import HooksBanner from './components/HooksBanner';
@@ -21,6 +21,9 @@ export default function App() {
   sessionsRef.current = sessions;
   const showPickerRef = useRef(showPicker);
   showPickerRef.current = showPicker;
+  const [activeShell, setActiveShell] = useState<Record<string, 'primary' | 'aux'>>({});
+  const activeShellRef = useRef(activeShell);
+  activeShellRef.current = activeShell;
 
   useEffect(() => {
     fetch('/api/sessions')
@@ -63,6 +66,27 @@ export default function App() {
     setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, branch } : s)));
   }, []);
 
+  const handleToggleAux = useCallback(async () => {
+    const currentId = activeIdRef.current;
+    if (!currentId) return;
+
+    const session = sessionsRef.current.find((s) => s.id === currentId);
+    if (!session) return;
+
+    if (!session.auxId) {
+      const res = await fetch(`/api/sessions/${currentId}/aux`, { method: 'POST' });
+      if (!res.ok) return;
+      const aux: { id: string } = await res.json();
+      setSessions((prev) => prev.map((s) => (s.id === currentId ? { ...s, auxId: aux.id } : s)));
+      setActiveShell((prev) => ({ ...prev, [currentId]: 'aux' }));
+    } else {
+      setActiveShell((prev) => ({
+        ...prev,
+        [currentId]: prev[currentId] === 'aux' ? 'primary' : 'aux',
+      }));
+    }
+  }, []);
+
   const handleSelectSession = useCallback((id: string) => {
     setActiveId(id);
     setNotificationStates((prev) => {
@@ -95,6 +119,13 @@ export default function App() {
         return;
       }
 
+      if (e.code === 'Backslash') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleToggleAux();
+        return;
+      }
+
       const match = e.code.match(/^Digit(\d)$/);
       if (match) {
         const num = parseInt(match[1], 10);
@@ -108,7 +139,7 @@ export default function App() {
 
     window.addEventListener('keydown', handler, true);
     return () => window.removeEventListener('keydown', handler, true);
-  }, [handleSelectSession]);
+  }, [handleSelectSession, handleToggleAux]);
 
   const handleCloseSession = async (id: string) => {
     const res = await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
@@ -125,6 +156,11 @@ export default function App() {
       delete next[id];
       return next;
     });
+    setActiveShell((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
   };
 
   return (
@@ -135,6 +171,7 @@ export default function App() {
       <Sidebar
         sessions={sessions}
         activeId={activeId}
+        activeShell={activeShell}
         notificationStates={notificationStates}
         onSelectSession={handleSelectSession}
         onCloseSession={handleCloseSession}
@@ -142,7 +179,7 @@ export default function App() {
         onNewTab={() => setShowPicker(true)}
       />
 
-      <div className="relative min-w-0 flex-1">
+      <div className="relative min-w-0 flex-1 overflow-hidden">
         <HooksBanner />
 
         {sessions.length === 0 && !showPicker && (
@@ -160,13 +197,24 @@ export default function App() {
         )}
 
         {sessions.map((session) => (
-          <TerminalPane
-            key={session.id}
-            session={session}
-            isActive={session.id === activeId}
-            onNotification={handleNotification}
-            onBranchUpdate={handleBranchUpdate}
-          />
+          <Fragment key={session.id}>
+            <TerminalPane
+              session={session}
+              isActive={session.id === activeId && activeShell[session.id] !== 'aux'}
+              isActiveTab={session.id === activeId}
+              onNotification={handleNotification}
+              onBranchUpdate={handleBranchUpdate}
+            />
+            {session.auxId && (
+              <TerminalPane
+                key={session.auxId}
+                session={{ ...session, id: session.auxId }}
+                isActive={session.id === activeId && activeShell[session.id] === 'aux'}
+                isActiveTab={session.id === activeId}
+                isAux
+              />
+            )}
+          </Fragment>
         ))}
 
         {showPicker && (

@@ -13,6 +13,7 @@ export interface Session {
   id: string;
   directory: string;
   branch: string;
+  parentId?: string;
   pty: IPty;
   scrollback: string;
   scrollbackDisposable: IDisposable;
@@ -76,6 +77,44 @@ export function createSession(directory: string, shell: string): Session {
   return session;
 }
 
+export function createAuxSession(parentId: string, shell: string): Session {
+  const parent = sessions.get(parentId);
+  if (!parent) throw new Error('parent session not found');
+  const pty = createPty(shell, parent.directory, 80, 24);
+  const session: Session = {
+    id: randomUUID(),
+    directory: parent.directory,
+    branch: parent.branch,
+    parentId,
+    pty,
+    scrollback: '',
+    scrollbackDisposable: null!,
+  };
+  session.scrollbackDisposable = pty.onData((data: string) => {
+    session.scrollback += data;
+    if (session.scrollback.length > SCROLLBACK_LIMIT) {
+      session.scrollback = session.scrollback.slice(-SCROLLBACK_LIMIT);
+    }
+  });
+  pty.onExit(() => {
+    sessions.delete(session.id);
+    session.scrollbackDisposable.dispose();
+  });
+  sessions.set(session.id, session);
+  return session;
+}
+
+export function getAuxSession(parentId: string): Session | undefined {
+  for (const session of sessions.values()) {
+    if (session.parentId === parentId) return session;
+  }
+  return undefined;
+}
+
+export function getAllPrimarySessions(): Session[] {
+  return Array.from(sessions.values()).filter((s) => !s.parentId);
+}
+
 export function getSession(id: string): Session | undefined {
   return sessions.get(id);
 }
@@ -87,6 +126,15 @@ export function getAllSessions(): Session[] {
 export function deleteSession(id: string): void {
   const session = sessions.get(id);
   if (!session) return;
+  // Cascade: delete aux child
+  for (const [childId, child] of sessions) {
+    if (child.parentId === id) {
+      child.scrollbackDisposable.dispose();
+      killPty(child.pty);
+      sessions.delete(childId);
+      break;
+    }
+  }
   branchWatchers.get(id)?.close();
   branchWatchers.delete(id);
   session.scrollbackDisposable.dispose();

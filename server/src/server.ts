@@ -13,7 +13,13 @@ import {
 } from './notification-watcher.js';
 import { resizePty } from './pty-manager.js';
 import { createRouter } from './routes.js';
-import { getSession, killAllSessions, onBranchChange, type Session } from './sessions.js';
+import {
+  getSession,
+  getAuxSession,
+  killAllSessions,
+  onBranchChange,
+  type Session,
+} from './sessions.js';
 
 export interface StartServerOptions {
   configPath?: string;
@@ -175,6 +181,14 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
         const ws = activeConnections.get(sessionId);
         if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: 'branch_update', sessionId, branch }));
+        }
+        const aux = getAuxSession(sessionId);
+        if (aux) {
+          aux.branch = branch;
+          const auxWs = activeConnections.get(aux.id);
+          if (auxWs && auxWs.readyState === WebSocket.OPEN) {
+            auxWs.send(JSON.stringify({ type: 'branch_update', sessionId, branch }));
+          }
         }
       });
 
