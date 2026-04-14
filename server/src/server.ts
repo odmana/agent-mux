@@ -9,6 +9,7 @@ import {
   startNotificationWatcher,
   stopNotificationWatcher,
   clearIfPermission,
+  type NotificationState,
 } from './notification-watcher.js';
 import { resizePty } from './pty-manager.js';
 import { createRouter } from './routes.js';
@@ -20,10 +21,15 @@ export interface StartServerOptions {
   randomPort?: boolean;
 }
 
+export type { NotificationState } from './notification-watcher.js';
+
 export interface ServerInstance {
   server: Server;
   port: number;
   cleanup: () => void;
+  onNotificationStateChange: (
+    handler: (sessionId: string, state: NotificationState) => void,
+  ) => void;
 }
 
 export function startServer(options: StartServerOptions = {}): Promise<ServerInstance> {
@@ -154,6 +160,10 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
   });
 
   return new Promise((resolvePromise) => {
+    let externalNotificationHandler:
+      | ((sessionId: string, state: NotificationState) => void)
+      | null = null;
+
     const listenPort = options.randomPort ? 0 : config.serverPort;
     server.listen(listenPort, '127.0.0.1', () => {
       const addr = server.address();
@@ -174,6 +184,7 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
           if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'notification', sessionId, state }));
           }
+          externalNotificationHandler?.(sessionId, state);
         },
       });
 
@@ -184,6 +195,9 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
           stopNotificationWatcher();
           killAllSessions();
           server.close();
+        },
+        onNotificationStateChange: (handler) => {
+          externalNotificationHandler = handler;
         },
       });
     });

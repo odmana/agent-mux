@@ -6,6 +6,7 @@ import { Router } from 'express';
 
 import { fuzzyMatch } from './fuzzy-match.js';
 import { checkHooksStatus, installHooks } from './hooks-setup.js';
+import { clearSessionState } from './notification-watcher.js';
 import { createSession, getAllSessions, getSession, deleteSession } from './sessions.js';
 
 export interface DirectorySuggestion {
@@ -93,6 +94,7 @@ export function createRouter(shell: string): Router {
       res.status(404).json({ error: 'session not found' });
       return;
     }
+    clearSessionState(req.params.id);
     deleteSession(req.params.id);
     res.status(204).end();
   });

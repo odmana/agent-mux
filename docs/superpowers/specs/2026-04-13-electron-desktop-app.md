@@ -15,6 +15,7 @@ Extract a `startServer()` function from `server/src/index.ts` so both the standa
 ### 1a. Create `server/src/server.ts`
 
 New file exporting:
+
 ```ts
 export interface StartServerOptions {
   configPath?: string;
@@ -27,10 +28,11 @@ export interface ServerInstance {
   cleanup: () => void;
 }
 
-export function startServer(options?: StartServerOptions): Promise<ServerInstance>
+export function startServer(options?: StartServerOptions): Promise<ServerInstance>;
 ```
 
 Move lines 17-156 of `index.ts` into this function. Key changes:
+
 - Accept optional `configPath` -> pass to `loadConfig(configPath)`
 - Accept optional `clientDistPath` -> override the default `../../client/dist` resolution
 - Return a promise that resolves with `{ server, port, cleanup }` once listening
@@ -39,6 +41,7 @@ Move lines 17-156 of `index.ts` into this function. Key changes:
 ### 1b. Slim down `server/src/index.ts`
 
 Replace with a thin wrapper:
+
 ```ts
 import { startServer } from './server.js';
 const { cleanup } = await startServer();
@@ -81,6 +84,7 @@ packages:
 ### 2b. Create `electron/package.json`
 
 Key points:
+
 - `"main": "dist/bundle.mjs"` -- esbuild-bundled entry point
 - Dependencies: `agent-mux-server: workspace:*`, `node-pty: 1.1.0`
 - Dev dependencies: `electron`, `@electron/rebuild`, `electron-builder`, `esbuild`, `typescript`, `@types/node`
@@ -116,6 +120,7 @@ The main process entry point:
 5. **Lifecycle** -- closing the window calls `cleanup()` and `process.exit(0)`
 
 Path resolution:
+
 - **Dev**: config from `../../config.json`, client dist from `../../client/dist`
 - **Packaged**: config from `app.getPath('userData')/config.json`, client dist from `process.resourcesPath/client-dist`
 
@@ -126,6 +131,7 @@ Path resolution:
 ### 3a. Root `package.json` changes
 
 Add scripts:
+
 ```json
 "dev": "pnpm -C client build && pnpm -C server build && pnpm -C electron dev",
 "dev:browser": "pnpm --parallel -r --filter=!agent-mux-electron run dev",

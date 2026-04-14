@@ -1,10 +1,36 @@
 import { join } from 'node:path';
 
-import { startServer, type ServerInstance } from 'agent-mux-server/server';
-import { app, BrowserWindow, Menu, dialog } from 'electron';
+import { startServer, type ServerInstance, type NotificationState } from 'agent-mux-server/server';
+import { app, BrowserWindow, Menu, dialog, nativeImage } from 'electron';
 
 let mainWindow: BrowserWindow | null = null;
 let serverInstance: ServerInstance | null = null;
+
+// Sessions currently in 'permission' state (tracked for taskbar badge)
+const permissionSessions = new Set<string>();
+
+// 16x16 bright red circle PNG as base64 data URL (for Windows overlay icon)
+const BADGE_ICON_DATA_URL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAWE' +
+  'lEQVR4nGNgGJTgv7Fx6X9j4zP/jY1/QjGIXUqMRmWo4v84MEhOGZ8B+DTDDcHnbEKaYR' +
+  'jTO0TajtsV0MAi1oCfNDGAYi9QFogURyMDNRISmndIT8oDAgDBLR1gDiDr/QAAAABJRU5' +
+  'ErkJggg==';
+
+function updateBadge(count: number): void {
+  if (process.platform === 'win32') {
+    if (!mainWindow) return;
+    if (count > 0) {
+      const icon = nativeImage.createFromDataURL(BADGE_ICON_DATA_URL);
+      mainWindow.setOverlayIcon(icon, `${count} tab(s) need permission`);
+    } else {
+      mainWindow.setOverlayIcon(null, '');
+    }
+  } else if (process.platform === 'darwin') {
+    app.dock?.setBadge(count > 0 ? String(count) : '');
+  } else {
+    app.setBadgeCount(count);
+  }
+}
 
 // Single instance lock — refocus existing window on second launch
 const gotLock = app.requestSingleInstanceLock();
@@ -98,6 +124,15 @@ async function start() {
     if (choice === 0) {
       event.preventDefault();
     }
+  });
+
+  serverInstance.onNotificationStateChange((sessionId: string, state: NotificationState) => {
+    if (state === 'permission') {
+      permissionSessions.add(sessionId);
+    } else {
+      permissionSessions.delete(sessionId);
+    }
+    updateBadge(permissionSessions.size);
   });
 
   mainWindow.on('closed', () => {

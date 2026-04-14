@@ -184,6 +184,17 @@ export function stopNotificationWatcher(): void {
 }
 
 /**
+ * Clear all notification state for a session.
+ * Called when a session is deleted so the badge updates.
+ */
+export function clearSessionState(sessionId: string): void {
+  if (states.has(sessionId)) {
+    states.delete(sessionId);
+    onStateChange?.(sessionId, 'none');
+  }
+}
+
+/**
  * Clear notification state for a session if it's currently 'permission'.
  * Called when PTY produces output, indicating the permission was granted.
  */

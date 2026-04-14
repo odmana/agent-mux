@@ -2,8 +2,8 @@
   "name": "agent-mux-electron",
   "version": "0.1.0",
   "private": true,
-  "main": "dist/bundle.mjs",
   "type": "module",
+  "main": "dist/bundle.mjs",
   "scripts": {
     "dev": "tsc && electron dist/main.js",
     "build": "tsc",
