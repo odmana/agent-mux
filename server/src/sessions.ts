@@ -57,9 +57,10 @@ export function createSession(directory: string, shell: string): Session {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
     }).trim();
-    const gitHead = join(gitRoot, '.git', 'HEAD');
+    const gitDir = join(gitRoot, '.git');
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-    const watcher = watch(gitHead, () => {
+    const watcher = watch(gitDir, (_event, filename) => {
+      if (filename && filename !== 'HEAD') return;
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         const newBranch = getGitBranch(session.directory);
