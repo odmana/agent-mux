@@ -51,7 +51,12 @@ export function createSession(directory: string, shell: string): Session {
 
   // Watch .git/HEAD for branch changes (debounced — fs.watch can fire multiple times per change)
   try {
-    const gitHead = join(directory, '.git', 'HEAD');
+    const gitRoot = execSync('git rev-parse --show-toplevel', {
+      cwd: directory,
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
+    const gitHead = join(gitRoot, '.git', 'HEAD');
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const watcher = watch(gitHead, () => {
       if (debounceTimer) clearTimeout(debounceTimer);
