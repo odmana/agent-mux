@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import { resolve, dirname, basename } from 'node:path';
 
 import { Router } from 'express';
+import * as v from 'valibot';
 
 import { fuzzyMatch } from './fuzzy-match.js';
 import { checkHooksStatus, installHooks } from './hooks-setup.js';
@@ -15,6 +16,7 @@ import {
   getSession,
   deleteSession,
 } from './sessions.js';
+import { AppStateSchema, loadState, updateState } from './state.js';
 
 export interface DirectorySuggestion {
   path: string;
@@ -70,6 +72,7 @@ export function createRouter(
   initialCommand?: string,
   auxInitialCommand?: string,
   defaultDirectory?: string,
+  statePath?: string,
 ): Router {
   const router = Router();
 
@@ -153,6 +156,19 @@ export function createRouter(
 
   router.get('/api/config', (_req, res) => {
     res.json({ defaultDirectory });
+  });
+
+  router.get('/api/state', (_req, res) => {
+    res.json(loadState(statePath));
+  });
+
+  router.patch('/api/state', (req, res) => {
+    const result = v.safeParse(AppStateSchema, req.body);
+    if (!result.success) {
+      res.status(400).json({ error: 'invalid state' });
+      return;
+    }
+    res.json(updateState(statePath, result.output));
   });
 
   return router;

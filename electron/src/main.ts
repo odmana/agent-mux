@@ -55,6 +55,13 @@ function resolveConfigPath(): string {
   return join(import.meta.dirname, '../../config.json');
 }
 
+function resolveStatePath(): string {
+  if (app.isPackaged) {
+    return join(app.getPath('userData'), 'state.json');
+  }
+  return join(import.meta.dirname, '../../state.json');
+}
+
 function resolveClientDist(): string {
   if (app.isPackaged) {
     return join(process.resourcesPath, 'client-dist');
@@ -72,6 +79,7 @@ async function start() {
     configPath: resolveConfigPath(),
     clientDistPath: resolveClientDist(),
     randomPort: true,
+    statePath: resolveStatePath(),
   });
 
   mainWindow = new BrowserWindow({

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 import { uiColors } from '../terminal-config';
 import type { Session, NotificationState } from '../types';
@@ -8,16 +8,6 @@ import TabItem from './TabItem';
 const MIN_WIDTH = 180;
 const MAX_WIDTH = 400;
 const DEFAULT_WIDTH = 240;
-const STORAGE_KEY = 'sidebar-width';
-
-function loadWidth(): number {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    const n = parseInt(stored, 10);
-    if (n >= MIN_WIDTH && n <= MAX_WIDTH) return n;
-  }
-  return DEFAULT_WIDTH;
-}
 
 interface SidebarProps {
   sessions: Session[];
@@ -28,6 +18,8 @@ interface SidebarProps {
   onCloseSession: (id: string) => void;
   onReorderSessions: (sessions: Session[]) => void;
   onNewTab: () => void;
+  initialWidth?: number;
+  onWidthChange?: (width: number) => void;
 }
 
 export default function Sidebar({
@@ -39,32 +31,41 @@ export default function Sidebar({
   onCloseSession,
   onReorderSessions,
   onNewTab,
+  initialWidth,
+  onWidthChange,
 }: SidebarProps) {
-  const [width, setWidth] = useState(loadWidth);
+  const [width, setWidth] = useState(initialWidth ?? DEFAULT_WIDTH);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const widthRef = useRef(width);
   widthRef.current = width;
 
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startWidth = widthRef.current;
-    document.body.style.userSelect = 'none';
+  useEffect(() => {
+    if (initialWidth !== undefined) setWidth(initialWidth);
+  }, [initialWidth]);
 
-    const onMouseMove = (ev: MouseEvent) => {
-      const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + ev.clientX - startX));
-      setWidth(newWidth);
-    };
-    const onMouseUp = () => {
-      document.body.style.userSelect = '';
-      localStorage.setItem(STORAGE_KEY, String(widthRef.current));
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-    };
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  }, []);
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      const startWidth = widthRef.current;
+      document.body.style.userSelect = 'none';
+
+      const onMouseMove = (ev: MouseEvent) => {
+        const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + ev.clientX - startX));
+        setWidth(newWidth);
+      };
+      const onMouseUp = () => {
+        document.body.style.userSelect = '';
+        onWidthChange?.(widthRef.current);
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      };
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    },
+    [onWidthChange],
+  );
 
   const handleDragStart = (index: number) => {
     setDragIndex(index);

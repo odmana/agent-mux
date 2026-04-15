@@ -25,6 +25,7 @@ export interface StartServerOptions {
   configPath?: string;
   clientDistPath?: string;
   randomPort?: boolean;
+  statePath?: string;
 }
 
 export type { NotificationState } from './notification-watcher.js';
@@ -49,6 +50,7 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
       config.initialCommand,
       config.auxInitialCommand,
       config.defaultDirectory,
+      options.statePath,
     ),
   );
 

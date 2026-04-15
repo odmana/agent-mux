@@ -26,6 +26,7 @@ export default function App() {
   activeShellRef.current = activeShell;
 
   const [defaultDirectory, setDefaultDirectory] = useState('~/');
+  const [sidebarWidth, setSidebarWidth] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     fetch('/api/sessions')
@@ -40,6 +41,12 @@ export default function App() {
       .then((res) => res.json())
       .then((cfg: { defaultDirectory?: string }) => {
         if (cfg.defaultDirectory) setDefaultDirectory(cfg.defaultDirectory);
+      })
+      .catch(() => {});
+    fetch('/api/state')
+      .then((res) => res.json())
+      .then((state: { sidebarWidth?: number }) => {
+        if (state.sidebarWidth !== undefined) setSidebarWidth(state.sidebarWidth);
       })
       .catch(() => {});
   }, []);
@@ -72,6 +79,14 @@ export default function App() {
 
   const handleBranchUpdate = useCallback((sessionId: string, branch: string) => {
     setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, branch } : s)));
+  }, []);
+
+  const handleSidebarWidthChange = useCallback((width: number) => {
+    fetch('/api/state', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sidebarWidth: width }),
+    }).catch(() => {});
   }, []);
 
   const handleToggleAux = useCallback(async () => {
@@ -247,6 +262,8 @@ export default function App() {
         onCloseSession={handleCloseSession}
         onReorderSessions={setSessions}
         onNewTab={() => setShowPicker(true)}
+        initialWidth={sidebarWidth}
+        onWidthChange={handleSidebarWidthChange}
       />
 
       <div className="relative min-w-0 flex-1 overflow-hidden">
