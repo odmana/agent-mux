@@ -6,6 +6,7 @@ interface DirectorySuggestion {
 }
 
 interface DirectoryPickerProps {
+  defaultDirectory: string;
   onConfirm: (directory: string) => void;
   onCancel: () => void;
 }
@@ -31,8 +32,12 @@ function HighlightedName({ path, matchIndices }: DirectorySuggestion) {
   );
 }
 
-export default function DirectoryPicker({ onConfirm, onCancel }: DirectoryPickerProps) {
-  const [input, setInput] = useState('~/');
+export default function DirectoryPicker({
+  defaultDirectory,
+  onConfirm,
+  onCancel,
+}: DirectoryPickerProps) {
+  const [input, setInput] = useState(defaultDirectory);
   const [suggestions, setSuggestions] = useState<DirectorySuggestion[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);

@@ -8,6 +8,7 @@ export interface Config {
   clientPort: number;
   initialCommand?: string;
   auxInitialCommand?: string;
+  defaultDirectory?: string;
 }
 
 function defaultShell(): string {
@@ -34,6 +35,7 @@ export function loadConfig(configPath?: string): Config {
       initialCommand: typeof raw.initialCommand === 'string' ? raw.initialCommand : undefined,
       auxInitialCommand:
         typeof raw.auxInitialCommand === 'string' ? raw.auxInitialCommand : undefined,
+      defaultDirectory: typeof raw.defaultDirectory === 'string' ? raw.defaultDirectory : undefined,
     };
   } catch {
     return defaults;

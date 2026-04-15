@@ -25,6 +25,8 @@ export default function App() {
   const activeShellRef = useRef(activeShell);
   activeShellRef.current = activeShell;
 
+  const [defaultDirectory, setDefaultDirectory] = useState('~/');
+
   useEffect(() => {
     fetch('/api/sessions')
       .then((res) => (res.ok ? res.json() : []))
@@ -34,6 +36,12 @@ export default function App() {
           setActiveId(existing[0].id);
         }
       });
+    fetch('/api/config')
+      .then((res) => res.json())
+      .then((cfg: { defaultDirectory?: string }) => {
+        if (cfg.defaultDirectory) setDefaultDirectory(cfg.defaultDirectory);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -282,7 +290,11 @@ export default function App() {
         ))}
 
         {showPicker && (
-          <DirectoryPicker onConfirm={handleNewSession} onCancel={() => setShowPicker(false)} />
+          <DirectoryPicker
+            defaultDirectory={defaultDirectory}
+            onConfirm={handleNewSession}
+            onCancel={() => setShowPicker(false)}
+          />
         )}
       </div>
     </div>

@@ -43,7 +43,14 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
   const app = express();
 
   app.use(express.json());
-  app.use(createRouter(config.shell, config.initialCommand, config.auxInitialCommand));
+  app.use(
+    createRouter(
+      config.shell,
+      config.initialCommand,
+      config.auxInitialCommand,
+      config.defaultDirectory,
+    ),
+  );
 
   // Serve client build in production
   const clientDist = options.clientDistPath ?? resolve(import.meta.dirname, '../../client/dist');

@@ -69,6 +69,7 @@ export function createRouter(
   shell: string,
   initialCommand?: string,
   auxInitialCommand?: string,
+  defaultDirectory?: string,
 ): Router {
   const router = Router();
 
@@ -148,6 +149,10 @@ export function createRouter(
   router.post('/api/hooks/install', (_req, res) => {
     const result = installHooks();
     res.status(result.success ? 200 : 500).json(result);
+  });
+
+  router.get('/api/config', (_req, res) => {
+    res.json({ defaultDirectory });
   });
 
   return router;

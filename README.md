@@ -60,7 +60,8 @@ Optional `config.json` (gitignored):
   "serverPort": 3000,
   "clientPort": 5173,
   "initialCommand": "claude",
-  "auxInitialCommand": ""
+  "auxInitialCommand": "",
+  "defaultDirectory": "~/projects"
 }
 ```
 
@@ -69,6 +70,7 @@ Optional `config.json` (gitignored):
 - `clientPort` -- Vite dev server port (browser mode only). Defaults to `5173`.
 - `initialCommand` -- command to run when a primary shell starts. Optional.
 - `auxInitialCommand` -- command to run when an auxiliary shell starts. Optional.
+- `defaultDirectory` -- initial path shown in the folder picker. Defaults to `~/`. Optional.
 
 ### Config file location
 
@@ -82,12 +84,12 @@ If the file doesn't exist, defaults are used.
 
 ## Keyboard Shortcuts
 
-| Shortcut                      | Action                  |
-| ----------------------------- | ----------------------- |
-| `Ctrl/Cmd + Shift + N`        | New session             |
-| `Ctrl/Cmd + Shift + 1-9`      | Switch to tab by number |
-| `Ctrl/Cmd + Shift + ↑`        | Previous tab            |
-| `Ctrl/Cmd + Shift + ↓`        | Next tab                |
+| Shortcut                 | Action                  |
+| ------------------------ | ----------------------- |
+| `Ctrl/Cmd + Shift + N`   | New session             |
+| `Ctrl/Cmd + Shift + 1-9` | Switch to tab by number |
+| `Ctrl/Cmd + Shift + ↑`   | Previous tab            |
+| `Ctrl/Cmd + Shift + ↓`   | Next tab                |
 
 Shortcut hints are shown as keycap badges on each tab (1-9) and the "New session" button.
 
