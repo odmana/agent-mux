@@ -80,10 +80,15 @@ export default function App() {
       setSessions((prev) => prev.map((s) => (s.id === currentId ? { ...s, auxId: aux.id } : s)));
       setActiveShell((prev) => ({ ...prev, [currentId]: 'aux' }));
     } else {
-      setActiveShell((prev) => ({
-        ...prev,
-        [currentId]: prev[currentId] === 'aux' ? 'primary' : 'aux',
-      }));
+      const switching = activeShellRef.current[currentId] === 'aux' ? 'primary' : 'aux';
+      setActiveShell((prev) => ({ ...prev, [currentId]: switching }));
+      // Clear idle notification when switching back to the primary shell
+      if (switching === 'primary') {
+        setNotificationStates((prev) => {
+          if (prev[currentId] !== 'idle') return prev;
+          return { ...prev, [currentId]: 'none' };
+        });
+      }
     }
   }, []);
 
