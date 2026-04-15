@@ -27,7 +27,7 @@ export function onBranchChange(handler: (sessionId: string, branch: string) => v
   branchChangeHandler = handler;
 }
 
-export function createSession(directory: string, shell: string): Session {
+export function createSession(directory: string, shell: string, initialCommand?: string): Session {
   const pty = createPty(shell, directory, 80, 24);
   const session: Session = {
     id: randomUUID(),
@@ -49,6 +49,7 @@ export function createSession(directory: string, shell: string): Session {
     session.scrollbackDisposable.dispose();
   });
   sessions.set(session.id, session);
+  if (initialCommand) pty.write(initialCommand + '\n');
 
   // Watch .git/HEAD for branch changes (debounced — fs.watch can fire multiple times per change)
   try {
@@ -78,7 +79,11 @@ export function createSession(directory: string, shell: string): Session {
   return session;
 }
 
-export function createAuxSession(parentId: string, shell: string): Session {
+export function createAuxSession(
+  parentId: string,
+  shell: string,
+  initialCommand?: string,
+): Session {
   const parent = sessions.get(parentId);
   if (!parent) throw new Error('parent session not found');
   const pty = createPty(shell, parent.directory, 80, 24);
@@ -102,6 +107,7 @@ export function createAuxSession(parentId: string, shell: string): Session {
     session.scrollbackDisposable.dispose();
   });
   sessions.set(session.id, session);
+  if (initialCommand) pty.write(initialCommand + '\n');
   return session;
 }
 

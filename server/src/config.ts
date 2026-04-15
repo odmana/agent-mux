@@ -6,6 +6,8 @@ export interface Config {
   shell: string;
   serverPort: number;
   clientPort: number;
+  initialCommand?: string;
+  auxInitialCommand?: string;
 }
 
 function defaultShell(): string {
@@ -29,6 +31,9 @@ export function loadConfig(configPath?: string): Config {
       shell: typeof raw.shell === 'string' ? raw.shell : defaults.shell,
       serverPort: typeof raw.serverPort === 'number' ? raw.serverPort : defaults.serverPort,
       clientPort: typeof raw.clientPort === 'number' ? raw.clientPort : defaults.clientPort,
+      initialCommand: typeof raw.initialCommand === 'string' ? raw.initialCommand : undefined,
+      auxInitialCommand:
+        typeof raw.auxInitialCommand === 'string' ? raw.auxInitialCommand : undefined,
     };
   } catch {
     return defaults;

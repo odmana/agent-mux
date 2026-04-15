@@ -65,7 +65,11 @@ export function listDirectories(prefix: string): DirectorySuggestion[] {
   }
 }
 
-export function createRouter(shell: string): Router {
+export function createRouter(
+  shell: string,
+  initialCommand?: string,
+  auxInitialCommand?: string,
+): Router {
   const router = Router();
 
   router.post('/api/sessions', (req, res) => {
@@ -79,7 +83,7 @@ export function createRouter(shell: string): Router {
       res.status(400).json({ error: 'directory does not exist' });
       return;
     }
-    const session = createSession(expanded, shell);
+    const session = createSession(expanded, shell, initialCommand);
     res.status(201).json({
       id: session.id,
       directory: session.directory,
@@ -102,7 +106,7 @@ export function createRouter(shell: string): Router {
       res.json({ id: existing.id, directory: existing.directory, branch: existing.branch });
       return;
     }
-    const aux = createAuxSession(req.params.id, shell);
+    const aux = createAuxSession(req.params.id, shell, auxInitialCommand);
     res.status(201).json({ id: aux.id, directory: aux.directory, branch: aux.branch });
   });
 

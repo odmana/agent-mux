@@ -58,13 +58,17 @@ Optional `config.json` (gitignored):
 {
   "shell": "/bin/zsh",
   "serverPort": 3000,
-  "clientPort": 5173
+  "clientPort": 5173,
+  "initialCommand": "claude",
+  "auxInitialCommand": ""
 }
 ```
 
 - `shell` -- path to shell binary. Defaults to `$SHELL` or `/bin/sh`.
 - `serverPort` -- server port. Defaults to `3000`.
 - `clientPort` -- Vite dev server port (browser mode only). Defaults to `5173`.
+- `initialCommand` -- command to run when a primary shell starts. Optional.
+- `auxInitialCommand` -- command to run when an auxiliary shell starts. Optional.
 
 ### Config file location
 
