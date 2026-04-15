@@ -149,7 +149,7 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
 
     // Handle PTY exit (user types exit, process crashes, etc.)
     const exitHandler = session.pty.onExit(() => {
-      ws.close();
+      ws.close(4000, 'pty_exited');
     });
 
     ws.on('close', () => {

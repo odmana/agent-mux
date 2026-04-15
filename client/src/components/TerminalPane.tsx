@@ -3,6 +3,7 @@ import { useRef, useEffect } from 'react';
 import { useSession } from '../hooks/useSession';
 import { terminalConfig } from '../terminal-config';
 import type { Session, NotificationState } from '../types';
+import DisconnectOverlay from './DisconnectOverlay';
 
 interface TerminalPaneProps {
   session: Session;
@@ -11,6 +12,7 @@ interface TerminalPaneProps {
   isAux?: boolean;
   onNotification?: (sessionId: string, state: NotificationState) => void;
   onBranchUpdate?: (sessionId: string, branch: string) => void;
+  onRestartSession?: () => void;
 }
 
 export default function TerminalPane({
@@ -20,9 +22,16 @@ export default function TerminalPane({
   isAux,
   onNotification,
   onBranchUpdate,
+  onRestartSession,
 }: TerminalPaneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  useSession(session.id, containerRef, isActive, onNotification, onBranchUpdate);
+  const { disconnectReason, reconnect } = useSession(
+    session.id,
+    containerRef,
+    isActive,
+    onNotification,
+    onBranchUpdate,
+  );
 
   // Only animate when toggling shells within the same active tab.
   // Skip animation when a tab first becomes active (snap to position instead).
@@ -46,9 +55,17 @@ export default function TerminalPane({
 
   return (
     <div
-      ref={containerRef}
       style={{ backgroundColor: terminalConfig.theme.background as string }}
       className={`absolute inset-0 ${paneClass}`}
-    />
+    >
+      <div ref={containerRef} className="h-full w-full" />
+      {disconnectReason && (
+        <DisconnectOverlay
+          reason={disconnectReason}
+          onReconnect={reconnect}
+          onNewSession={() => onRestartSession?.()}
+        />
+      )}
+    </div>
   );
 }

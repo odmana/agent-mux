@@ -141,6 +141,49 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler, true);
   }, [handleSelectSession, handleToggleAux]);
 
+  const handleRestartSession = useCallback(async (sessionId: string) => {
+    const session = sessionsRef.current.find((s) => s.id === sessionId);
+    if (!session) return;
+
+    const res = await fetch('/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ directory: session.directory }),
+    });
+    if (!res.ok) return;
+    const newSession: Session = await res.json();
+
+    setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...newSession } : s)));
+    if (activeIdRef.current === sessionId) {
+      setActiveId(newSession.id);
+    }
+    setNotificationStates((prev) => {
+      const next = { ...prev };
+      delete next[sessionId];
+      return next;
+    });
+    setActiveShell((prev) => {
+      const next = { ...prev };
+      delete next[sessionId];
+      return next;
+    });
+
+    fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' }).catch(() => {});
+  }, []);
+
+  const handleRestartAuxSession = useCallback(async (parentId: string) => {
+    const session = sessionsRef.current.find((s) => s.id === parentId);
+    if (!session?.auxId) return;
+
+    const oldAuxId = session.auxId;
+    fetch(`/api/sessions/${oldAuxId}`, { method: 'DELETE' }).catch(() => {});
+
+    const res = await fetch(`/api/sessions/${parentId}/aux`, { method: 'POST' });
+    if (!res.ok) return;
+    const aux: { id: string } = await res.json();
+    setSessions((prev) => prev.map((s) => (s.id === parentId ? { ...s, auxId: aux.id } : s)));
+  }, []);
+
   const handleCloseSession = async (id: string) => {
     const res = await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
     if (!res.ok) return;
@@ -204,6 +247,7 @@ export default function App() {
               isActiveTab={session.id === activeId}
               onNotification={handleNotification}
               onBranchUpdate={handleBranchUpdate}
+              onRestartSession={() => handleRestartSession(session.id)}
             />
             {session.auxId && (
               <TerminalPane
@@ -212,6 +256,7 @@ export default function App() {
                 isActive={session.id === activeId && activeShell[session.id] === 'aux'}
                 isActiveTab={session.id === activeId}
                 isAux
+                onRestartSession={() => handleRestartAuxSession(session.id)}
               />
             )}
           </Fragment>

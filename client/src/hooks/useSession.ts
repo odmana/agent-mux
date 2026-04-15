@@ -1,9 +1,14 @@
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { terminalConfig } from '../terminal-config';
-import type { NotificationState } from '../types';
+import type { DisconnectReason, NotificationState } from '../types';
+
+export interface UseSessionResult {
+  disconnectReason: DisconnectReason | null;
+  reconnect: () => void;
+}
 
 export function useSession(
   sessionId: string,
@@ -11,25 +16,91 @@ export function useSession(
   isActive: boolean,
   onNotification?: (sessionId: string, state: NotificationState) => void,
   onBranchUpdate?: (sessionId: string, branch: string) => void,
-) {
+): UseSessionResult {
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const wsCleanupRef = useRef<(() => void) | null>(null);
   const onNotificationRef = useRef(onNotification);
   onNotificationRef.current = onNotification;
   const onBranchUpdateRef = useRef(onBranchUpdate);
   onBranchUpdateRef.current = onBranchUpdate;
 
-  // Create terminal and WebSocket on mount
+  const [disconnectReason, setDisconnectReason] = useState<DisconnectReason | null>(null);
+
+  // Stable function to create a WebSocket connection.
+  // Reads terminalRef/fitAddonRef/wsRef at call time — safe to call after terminal is created.
+  const connectWebSocket = useCallback(
+    (sid: string) => {
+      const terminal = terminalRef.current;
+      if (!terminal) return;
+
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(`${protocol}//${window.location.host}/ws/${sid}`);
+      wsRef.current = ws;
+
+      // oxlint-disable-next-line prefer-add-event-listener -- .on* is idiomatic for WebSocket; cleanup nulls out handlers to prevent writes to disposed terminal
+      ws.onopen = () => {
+        const { cols, rows } = terminal;
+        ws.send(JSON.stringify({ type: 'resize', cols, rows }));
+      };
+
+      // oxlint-disable-next-line prefer-add-event-listener
+      ws.onmessage = (event) => {
+        const data = event.data;
+        if (typeof data === 'string' && data.startsWith('{')) {
+          try {
+            const msg = JSON.parse(data);
+            if (msg.type === 'notification') {
+              onNotificationRef.current?.(msg.sessionId, msg.state);
+              return;
+            }
+            if (msg.type === 'branch_update') {
+              onBranchUpdateRef.current?.(msg.sessionId, msg.branch);
+              return;
+            }
+          } catch {
+            // Not valid JSON — treat as terminal data
+          }
+        }
+        terminal.write(data);
+      };
+
+      // oxlint-disable-next-line prefer-add-event-listener
+      ws.onerror = () => {};
+
+      // oxlint-disable-next-line prefer-add-event-listener
+      ws.onclose = (event) => {
+        setDisconnectReason(event.code === 4000 ? 'pty_exited' : 'network');
+      };
+
+      const cleanup = () => {
+        // oxlint-disable-next-line prefer-add-event-listener
+        ws.onopen = null;
+        // oxlint-disable-next-line prefer-add-event-listener
+        ws.onmessage = null;
+        // oxlint-disable-next-line prefer-add-event-listener
+        ws.onerror = null;
+        // oxlint-disable-next-line prefer-add-event-listener
+        ws.onclose = null;
+        ws.close();
+        wsRef.current = null;
+      };
+      wsCleanupRef.current = cleanup;
+
+      return cleanup;
+    },
+    [], // stable — reads everything from refs
+  );
+
+  // Create terminal, connect WebSocket, and set up resize observer.
+  // sessionId is stable for the lifetime of this component (React re-keys on ID change).
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const terminal = new Terminal(terminalConfig);
 
-    // Let the browser handle Ctrl+C (copy when text is selected) and
-    // Ctrl+V / Ctrl+Shift+V (paste) instead of xterm consuming them.
-    // On Mac, Cmd+C/V is handled natively and doesn't set ctrlKey.
     terminal.attachCustomKeyEventHandler((event) => {
       if (event.ctrlKey && !event.metaKey && event.key === 'c' && terminal.hasSelection()) {
         return false;
@@ -48,50 +119,10 @@ export function useSession(
     terminalRef.current = terminal;
     fitAddonRef.current = fitAddon;
 
-    // WebSocket connection
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${protocol}//${window.location.host}/ws/${sessionId}`);
-    wsRef.current = ws;
-
-    // oxlint-disable-next-line prefer-add-event-listener -- .on* is idiomatic for WebSocket; cleanup nulls out handlers to prevent writes to disposed terminal
-    ws.onopen = () => {
-      const { cols, rows } = terminal;
-      ws.send(JSON.stringify({ type: 'resize', cols, rows }));
-    };
-
-    // oxlint-disable-next-line prefer-add-event-listener
-    ws.onmessage = (event) => {
-      const data = event.data;
-      if (typeof data === 'string' && data.startsWith('{')) {
-        try {
-          const msg = JSON.parse(data);
-          if (msg.type === 'notification') {
-            onNotificationRef.current?.(msg.sessionId, msg.state);
-            return;
-          }
-          if (msg.type === 'branch_update') {
-            onBranchUpdateRef.current?.(msg.sessionId, msg.branch);
-            return;
-          }
-        } catch {
-          // Not valid JSON — treat as terminal data
-        }
-      }
-      terminal.write(data);
-    };
-
-    // oxlint-disable-next-line prefer-add-event-listener
-    ws.onerror = () => {
-      terminal.write('\r\n\x1b[31mConnection error\x1b[0m\r\n');
-    };
-
-    // oxlint-disable-next-line prefer-add-event-listener
-    ws.onclose = () => {
-      terminal.write('\r\n\x1b[33mDisconnected\x1b[0m\r\n');
-    };
-
+    // Forward terminal input to current WebSocket
     terminal.onData((data) => {
-      if (ws.readyState === WebSocket.OPEN) {
+      const ws = wsRef.current;
+      if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(data);
       }
     });
@@ -99,31 +130,25 @@ export function useSession(
     // Resize observer
     const observer = new ResizeObserver(() => {
       fitAddon.fit();
-      if (ws.readyState === WebSocket.OPEN) {
+      const ws = wsRef.current;
+      if (ws && ws.readyState === WebSocket.OPEN) {
         const { cols, rows } = terminal;
         ws.send(JSON.stringify({ type: 'resize', cols, rows }));
       }
     });
     observer.observe(container);
 
+    // Connect WebSocket now that the terminal is ready
+    connectWebSocket(sessionId);
+
     return () => {
       observer.disconnect();
-      // Null out handlers before closing to prevent writes to a disposed terminal
-      // oxlint-disable-next-line prefer-add-event-listener
-      ws.onopen = null;
-      // oxlint-disable-next-line prefer-add-event-listener
-      ws.onmessage = null;
-      // oxlint-disable-next-line prefer-add-event-listener
-      ws.onerror = null;
-      // oxlint-disable-next-line prefer-add-event-listener
-      ws.onclose = null;
-      ws.close();
-      terminal.dispose();
+      wsCleanupRef.current?.();
       terminalRef.current = null;
       fitAddonRef.current = null;
-      wsRef.current = null;
+      terminal.dispose();
     };
-  }, [sessionId, containerRef]);
+  }, [sessionId, containerRef, connectWebSocket]);
 
   // Focus and fit when becoming active
   useEffect(() => {
@@ -132,4 +157,13 @@ export function useSession(
       fitAddonRef.current.fit();
     }
   }, [isActive]);
+
+  const reconnect = useCallback(() => {
+    wsCleanupRef.current?.();
+    terminalRef.current?.clear();
+    setDisconnectReason(null);
+    connectWebSocket(sessionId);
+  }, [sessionId, connectWebSocket]);
+
+  return { disconnectReason, reconnect };
 }
