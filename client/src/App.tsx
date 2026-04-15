@@ -85,6 +85,15 @@ export default function App() {
     setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, branch } : s)));
   }, []);
 
+  const handleReorderSessions = useCallback((reordered: Session[]) => {
+    setSessions(reordered);
+    fetch('/api/sessions/reorder', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionIds: reordered.map((s) => s.id) }),
+    }).catch(() => {});
+  }, []);
+
   const handleSidebarWidthChange = useCallback((width: number) => {
     fetch('/api/state', {
       method: 'PATCH',
@@ -214,7 +223,18 @@ export default function App() {
       return next;
     });
 
-    fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' }).catch(() => {});
+    fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' })
+      .then(() => {
+        // Sync order with server — the POST appended the new session at the end,
+        // but the client preserved its position via the map() above.
+        const currentIds = sessionsRef.current.map((s) => s.id);
+        fetch('/api/sessions/reorder', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionIds: currentIds }),
+        }).catch(() => {});
+      })
+      .catch(() => {});
   }, []);
 
   const handleRestartAuxSession = useCallback(async (parentId: string) => {
@@ -268,7 +288,7 @@ export default function App() {
         notificationStates={notificationStates}
         onSelectSession={handleSelectSession}
         onCloseSession={handleCloseSession}
-        onReorderSessions={setSessions}
+        onReorderSessions={handleReorderSessions}
         onNewTab={() => setShowPicker(true)}
         initialWidth={sidebarWidth}
         onWidthChange={handleSidebarWidthChange}

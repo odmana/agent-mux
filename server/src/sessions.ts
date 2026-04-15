@@ -20,6 +20,7 @@ export interface Session {
 }
 
 const sessions = new Map<string, Session>();
+const sessionOrder: string[] = [];
 const branchWatchers = new Map<string, FSWatcher>();
 let branchChangeHandler: ((sessionId: string, branch: string) => void) | null = null;
 
@@ -46,9 +47,12 @@ export function createSession(directory: string, shell: string, initialCommand?:
   // Clean up zombie sessions when PTY exits without an active WebSocket
   pty.onExit(() => {
     sessions.delete(session.id);
+    const idx = sessionOrder.indexOf(session.id);
+    if (idx !== -1) sessionOrder.splice(idx, 1);
     session.scrollbackDisposable.dispose();
   });
   sessions.set(session.id, session);
+  sessionOrder.push(session.id);
   if (initialCommand) pty.write(initialCommand + '\n');
 
   // Watch .git/HEAD for branch changes (debounced — fs.watch can fire multiple times per change)
@@ -119,7 +123,12 @@ export function getAuxSession(parentId: string): Session | undefined {
 }
 
 export function getAllPrimarySessions(): Session[] {
-  return Array.from(sessions.values()).filter((s) => !s.parentId);
+  const ordered: Session[] = [];
+  for (const id of sessionOrder) {
+    const s = sessions.get(id);
+    if (s && !s.parentId) ordered.push(s);
+  }
+  return ordered;
 }
 
 export function getSession(id: string): Session | undefined {
@@ -128,6 +137,24 @@ export function getSession(id: string): Session | undefined {
 
 export function getAllSessions(): Session[] {
   return Array.from(sessions.values());
+}
+
+export function reorderSessions(orderedIds: string[]): void {
+  const primaryIds = new Set(
+    Array.from(sessions.values())
+      .filter((s) => !s.parentId)
+      .map((s) => s.id),
+  );
+  const validIds = orderedIds.filter((id) => primaryIds.has(id));
+  const seen = new Set(validIds);
+  for (const id of sessionOrder) {
+    if (primaryIds.has(id) && !seen.has(id)) {
+      validIds.push(id);
+      seen.add(id);
+    }
+  }
+  sessionOrder.length = 0;
+  sessionOrder.push(...validIds);
 }
 
 export function deleteSession(id: string): void {
@@ -147,6 +174,8 @@ export function deleteSession(id: string): void {
   session.scrollbackDisposable.dispose();
   killPty(session.pty);
   sessions.delete(id);
+  const orderIdx = sessionOrder.indexOf(id);
+  if (orderIdx !== -1) sessionOrder.splice(orderIdx, 1);
 }
 
 export function killAllSessions(): void {
@@ -157,6 +186,7 @@ export function killAllSessions(): void {
     killPty(session.pty);
   }
   sessions.clear();
+  sessionOrder.length = 0;
 }
 
 function getGitBranch(directory: string): string {

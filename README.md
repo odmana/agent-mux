@@ -82,6 +82,10 @@ Optional `config.json` (gitignored):
 
 If the file doesn't exist, defaults are used.
 
+## Session Persistence
+
+Open sessions and their order are saved automatically. When the app restarts, previously open tabs are restored in the same order. The state is stored in `state.json` (same location as `config.json`, gitignored). Sessions pointing to directories that no longer exist are silently skipped on restore.
+
 ## Keyboard Shortcuts
 
 | Shortcut                 | Action                  |
@@ -90,6 +94,7 @@ If the file doesn't exist, defaults are used.
 | `Ctrl/Cmd + Shift + 1-9` | Switch to tab by number |
 | `Ctrl/Cmd + Shift + ↑`   | Previous tab            |
 | `Ctrl/Cmd + Shift + ↓`   | Next tab                |
+| `Ctrl/Cmd + Shift + \`   | Toggle auxiliary shell   |
 
 Shortcut hints are shown as keycap badges on each tab (1-9) and the "New session" button.
 
@@ -117,6 +122,7 @@ agent-mux/
 │       ├── index.ts               # Standalone CLI wrapper
 │       ├── config.ts              # Optional config.json loader
 │       ├── sessions.ts            # Session state (PTY, scrollback, git branch)
+│       ├── state.ts               # Persisted app state (session list, sidebar width)
 │       ├── routes.ts              # REST API endpoints
 │       ├── pty-manager.ts         # node-pty wrapper
 │       ├── hooks-setup.ts         # Hook detection and auto-installation

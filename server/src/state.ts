@@ -5,9 +5,14 @@ import * as v from 'valibot';
 
 export const AppStateSchema = v.object({
   sidebarWidth: v.optional(v.pipe(v.number(), v.minValue(180), v.maxValue(400))),
+  sessions: v.optional(v.array(v.object({ directory: v.string() }))),
 });
 
 export type AppState = v.InferOutput<typeof AppStateSchema>;
+
+export const ClientStateSchema = v.omit(AppStateSchema, ['sessions']);
+
+export type ClientState = v.InferOutput<typeof ClientStateSchema>;
 
 export function loadState(statePath?: string): AppState {
   statePath ??= resolve(import.meta.dirname, '../../state.json');

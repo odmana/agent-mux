@@ -15,8 +15,9 @@ import {
   getAllPrimarySessions,
   getSession,
   deleteSession,
+  reorderSessions,
 } from './sessions.js';
-import { AppStateSchema, loadState, updateState } from './state.js';
+import { ClientStateSchema, loadState, updateState } from './state.js';
 
 export interface DirectorySuggestion {
   path: string;
@@ -76,6 +77,26 @@ export function createRouter(
 ): Router {
   const router = Router();
 
+  function persistSessions(): void {
+    const sessions = getAllPrimarySessions().map((s) => ({ directory: s.directory }));
+    updateState(statePath, { sessions });
+  }
+
+  // Restore sessions from persisted state
+  const savedState = loadState(statePath);
+  if (savedState.sessions && savedState.sessions.length > 0) {
+    const valid: { directory: string }[] = [];
+    for (const entry of savedState.sessions) {
+      if (existsSync(entry.directory)) {
+        createSession(entry.directory, shell, initialCommand);
+        valid.push(entry);
+      }
+    }
+    if (valid.length !== savedState.sessions.length) {
+      updateState(statePath, { sessions: valid });
+    }
+  }
+
   router.post('/api/sessions', (req, res) => {
     const { directory } = req.body;
     if (!directory || typeof directory !== 'string') {
@@ -88,6 +109,7 @@ export function createRouter(
       return;
     }
     const session = createSession(expanded, shell, initialCommand);
+    persistSessions();
     res.status(201).json({
       id: session.id,
       directory: session.directory,
@@ -137,7 +159,21 @@ export function createRouter(
     if (aux) clearSessionState(aux.id);
     clearSessionState(req.params.id);
     deleteSession(req.params.id);
+    persistSessions();
     res.status(204).end();
+  });
+
+  const ReorderSchema = v.object({ sessionIds: v.array(v.string()) });
+
+  router.put('/api/sessions/reorder', (req, res) => {
+    const result = v.safeParse(ReorderSchema, req.body);
+    if (!result.success) {
+      res.status(400).json({ error: 'sessionIds must be an array of strings' });
+      return;
+    }
+    reorderSessions(result.output.sessionIds);
+    persistSessions();
+    res.json({ ok: true });
   });
 
   router.get('/api/directories', (req, res) => {
@@ -159,16 +195,18 @@ export function createRouter(
   });
 
   router.get('/api/state', (_req, res) => {
-    res.json(loadState(statePath));
+    const { sessions: _, ...state } = loadState(statePath);
+    res.json(state);
   });
 
   router.patch('/api/state', (req, res) => {
-    const result = v.safeParse(AppStateSchema, req.body);
+    const result = v.safeParse(ClientStateSchema, req.body);
     if (!result.success) {
       res.status(400).json({ error: 'invalid state' });
       return;
     }
-    res.json(updateState(statePath, result.output));
+    const { sessions: _s, ...updated } = updateState(statePath, result.output);
+    res.json(updated);
   });
 
   return router;
