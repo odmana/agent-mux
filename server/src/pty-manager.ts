@@ -10,6 +10,7 @@ export function createPty(shell: string, cwd: string, cols: number, rows: number
     rows,
     name: 'xterm-256color',
     env: { ...process.env, TERM: 'xterm-256color' },
+    useConptyDll: true,
   });
 }
 
