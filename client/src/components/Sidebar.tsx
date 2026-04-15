@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 import { uiColors } from '../terminal-config';
 import type { Session, NotificationState } from '../types';
@@ -39,10 +39,6 @@ export default function Sidebar({
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const widthRef = useRef(width);
   widthRef.current = width;
-
-  useEffect(() => {
-    if (initialWidth !== undefined) setWidth(initialWidth);
-  }, [initialWidth]);
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {

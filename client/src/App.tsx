@@ -27,28 +27,32 @@ export default function App() {
 
   const [defaultDirectory, setDefaultDirectory] = useState('~/');
   const [sidebarWidth, setSidebarWidth] = useState<number | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/sessions')
-      .then((res) => (res.ok ? res.json() : []))
-      .then((existing: Session[]) => {
-        if (existing.length > 0) {
-          setSessions(existing);
-          setActiveId(existing[0].id);
-        }
-      });
-    fetch('/api/config')
-      .then((res) => res.json())
-      .then((cfg: { defaultDirectory?: string }) => {
-        if (cfg.defaultDirectory) setDefaultDirectory(cfg.defaultDirectory);
-      })
-      .catch(() => {});
-    fetch('/api/state')
-      .then((res) => res.json())
-      .then((state: { sidebarWidth?: number }) => {
-        if (state.sidebarWidth !== undefined) setSidebarWidth(state.sidebarWidth);
-      })
-      .catch(() => {});
+    Promise.all([
+      fetch('/api/sessions')
+        .then((res) => (res.ok ? res.json() : []))
+        .then((existing: Session[]) => {
+          if (existing.length > 0) {
+            setSessions(existing);
+            setActiveId(existing[0].id);
+          }
+        })
+        .catch(() => {}),
+      fetch('/api/config')
+        .then((res) => res.json())
+        .then((cfg: { defaultDirectory?: string }) => {
+          if (cfg.defaultDirectory) setDefaultDirectory(cfg.defaultDirectory);
+        })
+        .catch(() => {}),
+      fetch('/api/state')
+        .then((res) => res.json())
+        .then((state: { sidebarWidth?: number }) => {
+          if (state.sidebarWidth !== undefined) setSidebarWidth(state.sidebarWidth);
+        })
+        .catch(() => {}),
+    ]).then(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -248,9 +252,13 @@ export default function App() {
     });
   };
 
+  if (loading) {
+    return <div className="h-full" style={{ background: uiColors.pageBg }} />;
+  }
+
   return (
     <div
-      className="flex h-full"
+      className="animate-fade-in flex h-full"
       style={{ background: uiColors.pageBg, color: uiColors.textPrimary }}
     >
       <Sidebar
