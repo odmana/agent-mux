@@ -131,6 +131,20 @@ export default function App() {
         return;
       }
 
+      if (e.code === 'ArrowUp' || e.code === 'ArrowDown') {
+        const tabs = sessionsRef.current;
+        if (tabs.length < 2) return;
+        const currentId = activeIdRef.current;
+        const idx = tabs.findIndex((s) => s.id === currentId);
+        if (idx === -1) return;
+        const next =
+          e.code === 'ArrowUp' ? (idx - 1 + tabs.length) % tabs.length : (idx + 1) % tabs.length;
+        e.preventDefault();
+        e.stopPropagation();
+        handleSelectSession(tabs[next].id);
+        return;
+      }
+
       const match = e.code.match(/^Digit(\d)$/);
       if (match) {
         const num = parseInt(match[1], 10);

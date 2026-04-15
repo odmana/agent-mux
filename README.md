@@ -82,10 +82,12 @@ If the file doesn't exist, defaults are used.
 
 ## Keyboard Shortcuts
 
-| Shortcut                 | Action                  |
-| ------------------------ | ----------------------- |
-| `Ctrl/Cmd + Shift + N`   | New session             |
-| `Ctrl/Cmd + Shift + 1-9` | Switch to tab by number |
+| Shortcut                      | Action                  |
+| ----------------------------- | ----------------------- |
+| `Ctrl/Cmd + Shift + N`        | New session             |
+| `Ctrl/Cmd + Shift + 1-9`      | Switch to tab by number |
+| `Ctrl/Cmd + Shift + ↑`        | Previous tab            |
+| `Ctrl/Cmd + Shift + ↓`        | Next tab                |
 
 Shortcut hints are shown as keycap badges on each tab (1-9) and the "New session" button.
 
