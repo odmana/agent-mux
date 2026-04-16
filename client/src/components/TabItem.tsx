@@ -15,6 +15,8 @@ interface TabItemProps {
   index: number;
   onClick: () => void;
   onClose: () => void;
+  onHoverStart?: (el: HTMLDivElement) => void;
+  onHoverEnd?: () => void;
 }
 
 export default function TabItem({
@@ -27,6 +29,8 @@ export default function TabItem({
   index,
   onClick,
   onClose,
+  onHoverStart,
+  onHoverEnd,
 }: TabItemProps) {
   const [confirming, setConfirming] = useState(false);
   const displayName =
@@ -59,9 +63,11 @@ export default function TabItem({
       }}
       onMouseEnter={(e) => {
         if (!isActive) e.currentTarget.style.background = uiColors.hoverBg;
+        onHoverStart?.(e.currentTarget);
       }}
       onMouseLeave={(e) => {
         if (!isActive) e.currentTarget.style.background = 'transparent';
+        onHoverEnd?.();
       }}
     >
       {confirming ? (

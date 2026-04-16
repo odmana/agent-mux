@@ -169,8 +169,8 @@ export default function App() {
     }).catch(() => {});
   }, []);
 
-  const handleToggleAux = useCallback(async () => {
-    const currentId = activeIdRef.current;
+  const handleToggleAux = useCallback(async (sessionId?: string) => {
+    const currentId = sessionId ?? activeIdRef.current;
     if (!currentId) return;
 
     const session = sessionsRef.current.find((s) => s.id === currentId);
@@ -217,6 +217,62 @@ export default function App() {
       return changed ? next : prev;
     });
   }, []);
+
+  const handleOpenAuxForTab = useCallback(
+    async (sessionId: string) => {
+      const session = sessionsRef.current.find((s) => s.id === sessionId);
+      if (!session) return;
+      if (activeIdRef.current !== sessionId) handleSelectSession(sessionId);
+      setShowPlaybook((prev) => ({ ...prev, [sessionId]: false }));
+      if (!session.auxId) {
+        const res = await fetch(`/api/sessions/${sessionId}/aux`, { method: 'POST' });
+        if (!res.ok) return;
+        const aux: { id: string } = await res.json();
+        setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, auxId: aux.id } : s)));
+      }
+      setActiveShell((prev) => ({ ...prev, [sessionId]: 'aux' }));
+    },
+    [handleSelectSession],
+  );
+
+  const handleOpenPlaybookForTab = useCallback(
+    (sessionId: string) => {
+      const session = sessionsRef.current.find((s) => s.id === sessionId);
+      if (!session) return;
+      if (activeIdRef.current !== sessionId) handleSelectSession(sessionId);
+      if (!session.playbook) {
+        if (playbooks.length === 0) return;
+        setShowPlaybookSelector(true);
+        return;
+      }
+      setShowPlaybook((prev) => ({ ...prev, [sessionId]: true }));
+      if (activeShellRef.current[sessionId] === 'aux') {
+        setActiveShell((prev) => ({ ...prev, [sessionId]: 'primary' }));
+      }
+    },
+    [handleSelectSession, playbooks],
+  );
+
+  const handleStartPlaybookForTab = useCallback(
+    (sessionId: string) => {
+      const session = sessionsRef.current.find((s) => s.id === sessionId);
+      if (!session?.playbook) return;
+      sendPlaybookMessageRef.current[sessionId]?.({
+        type: 'playbook:start',
+        playbookName: session.playbook,
+      });
+      handlePlaybookStart(sessionId);
+    },
+    [handlePlaybookStart],
+  );
+
+  const handleStopPlaybookForTab = useCallback(
+    (sessionId: string) => {
+      sendPlaybookMessageRef.current[sessionId]?.({ type: 'playbook:stop' });
+      handlePlaybookStop(sessionId);
+    },
+    [handlePlaybookStop],
+  );
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -436,6 +492,11 @@ export default function App() {
         onCloseSession={handleCloseSession}
         onReorderSessions={handleReorderSessions}
         onNewTab={() => setShowPicker(true)}
+        hasPlaybooks={playbooks.length > 0}
+        onOpenAuxForTab={handleOpenAuxForTab}
+        onOpenPlaybookForTab={handleOpenPlaybookForTab}
+        onStartPlaybookForTab={handleStartPlaybookForTab}
+        onStopPlaybookForTab={handleStopPlaybookForTab}
         initialWidth={sidebarWidth}
         onWidthChange={handleSidebarWidthChange}
       />
