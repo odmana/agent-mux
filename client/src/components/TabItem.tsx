@@ -138,10 +138,7 @@ export default function TabItem({
                   aux
                 </span>
               )}
-              {isPlaybookRunning && (
-                <Play size={10} className="shrink-0" style={{ color: '#a3be8c' }} />
-              )}
-              {isPlaybookActive && !isPlaybookRunning && (
+              {isPlaybookActive && (
                 <span
                   className="shrink-0 rounded px-1 py-0.5 font-mono text-[9px] leading-none font-bold uppercase"
                   style={{
@@ -152,6 +149,9 @@ export default function TabItem({
                 >
                   play
                 </span>
+              )}
+              {isPlaybookRunning && (
+                <Play size={10} className="shrink-0" style={{ color: '#a3be8c' }} />
               )}
             </div>
             <button
