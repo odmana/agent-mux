@@ -76,24 +76,34 @@ export default function TerminalPane({
   const slide = isAux ? 'translate-x-full' : '-translate-x-full';
   const transition = shouldAnimate ? 'transition-transform duration-200 ease-out' : '';
 
-  let paneClass: string;
+  // Compute terminal visibility: handles aux shell, playbook, and normal states.
+  // Uses the same shouldAnimate guard (via `transition`) so toggling animates
+  // but switching tabs snaps to position.
+  let terminalClass: string;
   if (!isActiveTab) {
-    paneClass = 'invisible';
+    terminalClass = 'invisible';
+  } else if (showPlaybook) {
+    terminalClass = `${transition} pointer-events-none -translate-x-full`;
   } else if (isActive) {
-    paneClass = `${transition} translate-x-0`;
+    terminalClass = `${transition} translate-x-0`;
   } else {
-    paneClass = `${transition} pointer-events-none ${slide}`;
+    terminalClass = `${transition} pointer-events-none ${slide}`;
   }
 
-  // Playbook slide: when playbook is shown, terminal slides left
-  const playbookSlide = showPlaybook && isActiveTab ? '-translate-x-full' : 'translate-x-0';
-  const playbookViewSlide = showPlaybook && isActiveTab ? 'translate-x-0' : 'translate-x-full';
+  let playbookClass: string;
+  if (!isActiveTab) {
+    playbookClass = 'invisible';
+  } else if (showPlaybook) {
+    playbookClass = `${transition} translate-x-0`;
+  } else {
+    playbookClass = `${transition} pointer-events-none translate-x-full`;
+  }
 
   return (
     <>
       <div
         style={{ backgroundColor: terminalConfig.theme.background as string }}
-        className={`absolute inset-0 ${paneClass} ${transition} ${playbookSlide}`}
+        className={`absolute inset-0 ${terminalClass}`}
       >
         <div ref={containerRef} className="h-full w-full" />
         {disconnectReason && (
@@ -105,7 +115,7 @@ export default function TerminalPane({
         )}
       </div>
       {playbookName && isActiveTab && (
-        <div className={`absolute inset-0 ${transition} ${playbookViewSlide}`}>
+        <div className={`absolute inset-0 ${playbookClass}`}>
           <PlaybookView
             playbookName={playbookName}
             commands={playbookCommands ?? []}
