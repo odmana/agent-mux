@@ -5,7 +5,9 @@ import * as v from 'valibot';
 
 export const AppStateSchema = v.object({
   sidebarWidth: v.optional(v.pipe(v.number(), v.minValue(180), v.maxValue(400))),
-  sessions: v.optional(v.array(v.object({ directory: v.string() }))),
+  sessions: v.optional(
+    v.array(v.object({ directory: v.string(), playbook: v.optional(v.string()) })),
+  ),
 });
 
 export type AppState = v.InferOutput<typeof AppStateSchema>;
