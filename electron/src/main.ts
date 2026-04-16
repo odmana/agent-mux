@@ -75,10 +75,11 @@ function quit() {
 }
 
 async function start() {
+  const devHot = process.argv.includes('--dev-hot');
   serverInstance = await startServer({
     configPath: resolveConfigPath(),
     clientDistPath: resolveClientDist(),
-    randomPort: true,
+    randomPort: !devHot,
     statePath: resolveStatePath(),
   });
 
@@ -98,7 +99,23 @@ async function start() {
   mainWindow.setMenuBarVisibility(false);
   mainWindow.setAutoHideMenuBar(true);
 
-  mainWindow.loadURL(`http://localhost:${serverInstance.port}`);
+  // In dev:hot mode, load from Vite dev server for HMR; otherwise load from the bundled server
+  const clientUrl = devHot ? 'http://localhost:5173' : `http://localhost:${serverInstance.port}`;
+
+  if (devHot) {
+    // Vite dev server may not be ready yet — retry until it is
+    const maxRetries = 20;
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        await fetch(clientUrl);
+        break;
+      } catch {
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    }
+  }
+
+  mainWindow.loadURL(clientUrl);
 
   mainWindow.webContents.on('context-menu', (_event, params) => {
     const menu = Menu.buildFromTemplate([

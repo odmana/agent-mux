@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "pnpm -C client build && pnpm -C server build && pnpm -C electron dev",
+    "dev": "pnpm -C server build && pnpm -C electron build && pnpm --parallel --filter=agent-mux-client --filter=agent-mux-electron run dev:hot",
     "dev:browser": "pnpm --parallel --filter=agent-mux-client --filter=agent-mux-server run dev",
     "build:electron": "pnpm -C client build && pnpm -C server build && pnpm -C electron build && pnpm -C electron bundle",
     "dist": "pnpm run build:electron && pnpm -C electron dist",
