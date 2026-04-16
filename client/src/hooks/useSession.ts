@@ -3,11 +3,17 @@ import { Terminal } from '@xterm/xterm';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { terminalConfig } from '../terminal-config';
-import type { DisconnectReason, NotificationState } from '../types';
+import type {
+  DisconnectReason,
+  NotificationState,
+  PlaybookCommandStatus,
+  PlaybookLogEntry,
+} from '../types';
 
 export interface UseSessionResult {
   disconnectReason: DisconnectReason | null;
   reconnect: () => void;
+  sendMessage: (msg: object) => void;
 }
 
 export function useSession(
@@ -16,6 +22,9 @@ export function useSession(
   isActive: boolean,
   onNotification?: (sessionId: string, state: NotificationState) => void,
   onBranchUpdate?: (sessionId: string, branch: string) => void,
+  onPlaybookOutput?: (entry: PlaybookLogEntry) => void,
+  onPlaybookStatus?: (commands: PlaybookCommandStatus[]) => void,
+  onPlaybookStopped?: () => void,
 ): UseSessionResult {
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -25,6 +34,12 @@ export function useSession(
   onNotificationRef.current = onNotification;
   const onBranchUpdateRef = useRef(onBranchUpdate);
   onBranchUpdateRef.current = onBranchUpdate;
+  const onPlaybookOutputRef = useRef(onPlaybookOutput);
+  onPlaybookOutputRef.current = onPlaybookOutput;
+  const onPlaybookStatusRef = useRef(onPlaybookStatus);
+  onPlaybookStatusRef.current = onPlaybookStatus;
+  const onPlaybookStoppedRef = useRef(onPlaybookStopped);
+  onPlaybookStoppedRef.current = onPlaybookStopped;
 
   const [disconnectReason, setDisconnectReason] = useState<DisconnectReason | null>(null);
 
@@ -57,6 +72,18 @@ export function useSession(
             }
             if (msg.type === 'branch_update') {
               onBranchUpdateRef.current?.(msg.sessionId, msg.branch);
+              return;
+            }
+            if (msg.type === 'playbook:output') {
+              onPlaybookOutputRef.current?.({ source: msg.source, text: msg.text });
+              return;
+            }
+            if (msg.type === 'playbook:status') {
+              onPlaybookStatusRef.current?.(msg.commands);
+              return;
+            }
+            if (msg.type === 'playbook:stopped') {
+              onPlaybookStoppedRef.current?.();
               return;
             }
           } catch {
@@ -158,6 +185,13 @@ export function useSession(
     }
   }, [isActive]);
 
+  const sendMessage = useCallback((msg: object) => {
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(msg));
+    }
+  }, []);
+
   const reconnect = useCallback(() => {
     wsCleanupRef.current?.();
     terminalRef.current?.clear();
@@ -165,5 +199,5 @@ export function useSession(
     connectWebSocket(sessionId);
   }, [sessionId, connectWebSocket]);
 
-  return { disconnectReason, reconnect };
+  return { disconnectReason, reconnect, sendMessage };
 }

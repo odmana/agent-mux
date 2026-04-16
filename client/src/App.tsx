@@ -3,10 +3,17 @@ import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
 import DirectoryPicker from './components/DirectoryPicker';
 import HooksBanner from './components/HooksBanner';
 import Kbd from './components/Kbd';
+import PlaybookSelector from './components/PlaybookSelector';
 import Sidebar from './components/Sidebar';
 import TerminalPane from './components/TerminalPane';
 import { uiColors } from './terminal-config';
-import type { Session, NotificationState, PlaybookConfig } from './types';
+import type {
+  Session,
+  NotificationState,
+  PlaybookConfig,
+  PlaybookCommandStatus,
+  PlaybookLogEntry,
+} from './types';
 
 export default function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -28,8 +35,15 @@ export default function App() {
   const [defaultDirectory, setDefaultDirectory] = useState('~/');
   const [sidebarWidth, setSidebarWidth] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(true);
-  const [_playbooks, setPlaybooks] = useState<PlaybookConfig[]>([]);
-  const [showPlaybook, _setShowPlaybook] = useState<Record<string, boolean>>({});
+  const [playbooks, setPlaybooks] = useState<PlaybookConfig[]>([]);
+  const [showPlaybook, setShowPlaybook] = useState<Record<string, boolean>>({});
+  const [playbookLogs, setPlaybookLogs] = useState<Record<string, PlaybookLogEntry[]>>({});
+  const [playbookStatuses, setPlaybookStatuses] = useState<Record<string, PlaybookCommandStatus[]>>(
+    {},
+  );
+  const [playbookRunning, setPlaybookRunning] = useState<Record<string, boolean>>({});
+  const [showPlaybookSelector, setShowPlaybookSelector] = useState(false);
+  const sendPlaybookMessageRef = useRef<Record<string, (msg: object) => void>>({});
   const showPlaybookRef = useRef(showPlaybook);
   showPlaybookRef.current = showPlaybook;
 
@@ -88,6 +102,29 @@ export default function App() {
 
   const handleBranchUpdate = useCallback((sessionId: string, branch: string) => {
     setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, branch } : s)));
+  }, []);
+
+  const handleSelectPlaybook = useCallback((playbook: PlaybookConfig) => {
+    const currentId = activeIdRef.current;
+    if (!currentId) return;
+    setSessions((prev) =>
+      prev.map((s) => (s.id === currentId ? { ...s, playbook: playbook.name } : s)),
+    );
+    setShowPlaybookSelector(false);
+    setShowPlaybook((prev) => ({ ...prev, [currentId]: true }));
+    sendPlaybookMessageRef.current[currentId]?.({
+      type: 'playbook:select',
+      playbookName: playbook.name,
+    });
+  }, []);
+
+  const handlePlaybookStart = useCallback((sessionId: string) => {
+    setPlaybookLogs((prev) => ({ ...prev, [sessionId]: [] }));
+    setPlaybookRunning((prev) => ({ ...prev, [sessionId]: true }));
+  }, []);
+
+  const handlePlaybookStop = useCallback((sessionId: string) => {
+    setPlaybookRunning((prev) => ({ ...prev, [sessionId]: false }));
   }, []);
 
   const handleReorderSessions = useCallback((reordered: Session[]) => {
@@ -156,7 +193,8 @@ export default function App() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
-      if (!mod || !e.shiftKey) return;
+      if (!mod) return;
+      if (!e.shiftKey && e.code !== 'Backslash') return;
 
       if (e.code === 'KeyN') {
         e.preventDefault();
@@ -165,7 +203,22 @@ export default function App() {
         return;
       }
 
-      if (e.code === 'Backslash') {
+      if (e.code === 'Backslash' && !e.shiftKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (playbooks.length === 0) return;
+        const currentId = activeIdRef.current;
+        if (!currentId) return;
+        const session = sessionsRef.current.find((s) => s.id === currentId);
+        if (!session?.playbook) {
+          setShowPlaybookSelector(true);
+        } else {
+          setShowPlaybook((prev) => ({ ...prev, [currentId]: !prev[currentId] }));
+        }
+        return;
+      }
+
+      if (e.code === 'Backslash' && e.shiftKey) {
         e.preventDefault();
         e.stopPropagation();
         handleToggleAux();
@@ -199,7 +252,7 @@ export default function App() {
 
     window.addEventListener('keydown', handler, true);
     return () => window.removeEventListener('keydown', handler, true);
-  }, [handleSelectSession, handleToggleAux]);
+  }, [handleSelectSession, handleToggleAux, playbooks]);
 
   const handleRestartSession = useCallback(async (sessionId: string) => {
     const session = sessionsRef.current.find((s) => s.id === sessionId);
@@ -322,6 +375,33 @@ export default function App() {
               session={session}
               isActive={session.id === activeId && activeShell[session.id] !== 'aux'}
               isActiveTab={session.id === activeId}
+              showPlaybook={showPlaybook[session.id] ?? false}
+              playbookName={session.playbook}
+              playbookCommands={playbookStatuses[session.id]}
+              playbookLogs={playbookLogs[session.id]}
+              playbookRunning={playbookRunning[session.id]}
+              onPlaybookStart={() => handlePlaybookStart(session.id)}
+              onPlaybookStop={() => handlePlaybookStop(session.id)}
+              onChangePlaybook={() => setShowPlaybookSelector(true)}
+              onPlaybookOutput={(entry) => {
+                setPlaybookLogs((prev) => ({
+                  ...prev,
+                  [session.id]: [...(prev[session.id] ?? []), entry],
+                }));
+              }}
+              onPlaybookStatusChange={(commands) => {
+                setPlaybookStatuses((prev) => ({ ...prev, [session.id]: commands }));
+                const allDone = commands.every((c) => c.status !== 'running');
+                if (allDone) {
+                  setPlaybookRunning((prev) => ({ ...prev, [session.id]: false }));
+                }
+              }}
+              onPlaybookStopped={() => {
+                setPlaybookRunning((prev) => ({ ...prev, [session.id]: false }));
+              }}
+              onSendMessage={(sendFn) => {
+                sendPlaybookMessageRef.current[session.id] = sendFn;
+              }}
               onNotification={handleNotification}
               onBranchUpdate={handleBranchUpdate}
               onRestartSession={() => handleRestartSession(session.id)}
@@ -344,6 +424,14 @@ export default function App() {
             defaultDirectory={defaultDirectory}
             onConfirm={handleNewSession}
             onCancel={() => setShowPicker(false)}
+          />
+        )}
+
+        {showPlaybookSelector && (
+          <PlaybookSelector
+            playbooks={playbooks}
+            onSelect={handleSelectPlaybook}
+            onCancel={() => setShowPlaybookSelector(false)}
           />
         )}
       </div>
