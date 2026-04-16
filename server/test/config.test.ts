@@ -58,4 +58,38 @@ describe('loadConfig', () => {
     const config = loadConfig();
     expect(config.serverPort).toBe(3000);
   });
+
+  it('reads playbooks from config.json', () => {
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        playbooks: [
+          {
+            name: 'Dev',
+            commands: [
+              { label: 'API', command: 'npm run api' },
+              { label: 'Client', command: 'npm run client' },
+            ],
+          },
+        ],
+      }),
+    );
+    const config = loadConfig();
+    expect(config.playbooks).toHaveLength(1);
+    expect(config.playbooks![0].name).toBe('Dev');
+    expect(config.playbooks![0].commands).toHaveLength(2);
+    expect(config.playbooks![0].commands[0]).toEqual({ label: 'API', command: 'npm run api' });
+  });
+
+  it('returns undefined playbooks when not configured', () => {
+    writeFileSync(configPath, JSON.stringify({}));
+    const config = loadConfig();
+    expect(config.playbooks).toBeUndefined();
+  });
+
+  it('ignores invalid playbooks entries', () => {
+    writeFileSync(configPath, JSON.stringify({ playbooks: 'not an array' }));
+    const config = loadConfig();
+    expect(config.playbooks).toBeUndefined();
+  });
 });
