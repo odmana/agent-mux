@@ -26,7 +26,7 @@ pnpm install
 pnpm dev
 ```
 
-Opens a standalone Electron desktop window.
+Opens a standalone Electron desktop window with hot reload -- client changes apply instantly via Vite HMR, server changes auto-restart via `tsx watch`.
 
 ### Browser Mode
 
@@ -34,7 +34,7 @@ Opens a standalone Electron desktop window.
 pnpm dev:browser
 ```
 
-Starts the server and Vite dev server separately. Opens at http://localhost:3000 with hot module replacement.
+Runs the server and Vite dev server without Electron. Opens at http://localhost:5173 with hot module replacement.
 
 ### Building the Executable
 
@@ -86,6 +86,37 @@ If the file doesn't exist, defaults are used.
 
 Open sessions and their order are saved automatically. When the app restarts, previously open tabs are restored in the same order. The state is stored in `state.json` (same location as `config.json`, gitignored). Sessions pointing to directories that no longer exist are silently skipped on restore.
 
+## Playbooks
+
+Playbooks let you run multiple commands in parallel within a tab -- for example, starting a dev server and client simultaneously. Define them in `config.json`:
+
+```json
+{
+  "playbooks": [
+    {
+      "name": "Full Stack Dev",
+      "commands": [
+        { "label": "API", "command": "cd api && npm run dev" },
+        { "label": "Client", "command": "cd client && npm run dev" }
+      ]
+    }
+  ]
+}
+```
+
+Each playbook has a `name` and a list of `commands` with a `label` (shown in the UI) and a `command` (run from the session's working directory).
+
+### Usage
+
+Press `Ctrl/Cmd + \` to open the playbook selector. Once selected, use **Start**/**Stop** to control execution. Filter toggles show/hide output per command. Press `Ctrl/Cmd + \` again to return to the terminal -- the playbook keeps running in the background.
+
+### Behavior
+
+- Each tab can run one playbook at a time. Selecting a new playbook stops the current one.
+- If a command exits with an error, all remaining commands are stopped (fail-fast). Healthy exits (code 0) let others continue.
+- The selected playbook persists across app restarts (but is not auto-started).
+- A green **play** badge appears in the sidebar when a tab has its playbook view active.
+
 ## Keyboard Shortcuts
 
 | Shortcut                 | Action                  |
@@ -95,6 +126,7 @@ Open sessions and their order are saved automatically. When the app restarts, pr
 | `Ctrl/Cmd + Shift + ↑`   | Previous tab            |
 | `Ctrl/Cmd + Shift + ↓`   | Next tab                |
 | `Ctrl/Cmd + Shift + \`   | Toggle auxiliary shell  |
+| `Ctrl/Cmd + \`           | Toggle playbook view    |
 
 Shortcut hints are shown as keycap badges on each tab (1-9) and the "New session" button.
 
@@ -120,10 +152,11 @@ agent-mux/
 │   └── src/
 │       ├── server.ts              # Embeddable startServer() entry point
 │       ├── index.ts               # Standalone CLI wrapper
-│       ├── config.ts              # Optional config.json loader
+│       ├── config.ts              # Optional config.json loader (incl. playbooks)
 │       ├── sessions.ts            # Session state (PTY, scrollback, git branch)
-│       ├── state.ts               # Persisted app state (session list, sidebar width)
+│       ├── state.ts               # Persisted app state (session list, sidebar width, playbooks)
 │       ├── routes.ts              # REST API endpoints
+│       ├── playbook-manager.ts    # Parallel command execution via concurrently
 │       ├── pty-manager.ts         # node-pty wrapper
 │       ├── hooks-setup.ts         # Hook detection and auto-installation
 │       └── notification-watcher.ts # Polls /tmp for hook state files
@@ -142,5 +175,7 @@ agent-mux/
 │           ├── TabItem.tsx        # Single tab with notification dot
 │           ├── TerminalPane.tsx   # xterm.js wrapper
 │           ├── DirectoryPicker.tsx # Modal with path autocomplete
+│           ├── PlaybookSelector.tsx # Fuzzy playbook picker modal
+│           ├── PlaybookView.tsx   # Playbook log stream with filters
 │           └── HooksBanner.tsx    # Hook setup warning banner
 ```
