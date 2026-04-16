@@ -112,6 +112,10 @@ export default function App() {
     );
     setShowPlaybookSelector(false);
     setShowPlaybook((prev) => ({ ...prev, [currentId]: true }));
+    // Close aux when opening playbook
+    if (activeShellRef.current[currentId] === 'aux') {
+      setActiveShell((prev) => ({ ...prev, [currentId]: 'primary' }));
+    }
     sendPlaybookMessageRef.current[currentId]?.({
       type: 'playbook:select',
       playbookName: playbook.name,
@@ -151,6 +155,9 @@ export default function App() {
 
     const session = sessionsRef.current.find((s) => s.id === currentId);
     if (!session) return;
+
+    // Close playbook view when toggling aux
+    setShowPlaybook((prev) => ({ ...prev, [currentId]: false }));
 
     if (!session.auxId) {
       const res = await fetch(`/api/sessions/${currentId}/aux`, { method: 'POST' });
@@ -214,7 +221,12 @@ export default function App() {
         if (!session?.playbook) {
           setShowPlaybookSelector(true);
         } else {
-          setShowPlaybook((prev) => ({ ...prev, [currentId]: !prev[currentId] }));
+          const opening = !showPlaybookRef.current[currentId];
+          setShowPlaybook((prev) => ({ ...prev, [currentId]: opening }));
+          // Close aux when opening playbook
+          if (opening && activeShellRef.current[currentId] === 'aux') {
+            setActiveShell((prev) => ({ ...prev, [currentId]: 'primary' }));
+          }
         }
         return;
       }
