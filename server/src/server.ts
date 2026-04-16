@@ -11,15 +11,23 @@ import {
   clearIfPermission,
   type NotificationState,
 } from './notification-watcher.js';
+import {
+  startPlaybook,
+  stopPlaybook,
+  getPlaybookState,
+  stopAllPlaybooks,
+} from './playbook-manager.js';
 import { resizePty } from './pty-manager.js';
-import { createRouter } from './routes.js';
+import { createRouter, sessionPlaybooks } from './routes.js';
 import {
   getSession,
   getAuxSession,
+  getAllPrimarySessions,
   killAllSessions,
   onBranchChange,
   type Session,
 } from './sessions.js';
+import { updateState } from './state.js';
 
 export interface StartServerOptions {
   configPath?: string;
@@ -51,8 +59,20 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
       config.auxInitialCommand,
       config.defaultDirectory,
       options.statePath,
+      config.playbooks,
     ),
   );
+
+  function persistPlaybookSelection(): void {
+    const allSessions = getAllPrimarySessions();
+    const sessionEntries = allSessions.map((s) => {
+      const entry: { directory: string; playbook?: string } = { directory: s.directory };
+      const pb = sessionPlaybooks.get(s.id);
+      if (pb) entry.playbook = pb;
+      return entry;
+    });
+    updateState(options.statePath, { sessions: sessionEntries });
+  }
 
   // Serve client build in production
   const clientDist = options.clientDistPath ?? resolve(import.meta.dirname, '../../client/dist');
@@ -144,6 +164,63 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
             resizePty(session.pty, msg.cols, msg.rows);
             return;
           }
+
+          if (msg.type === 'playbook:start' && typeof msg.playbookName === 'string') {
+            const playbook = config.playbooks?.find((p) => p.name === msg.playbookName);
+            if (!playbook) return;
+            sessionPlaybooks.set(session.id, msg.playbookName);
+            persistPlaybookSelection();
+
+            startPlaybook(
+              session.id,
+              playbook,
+              session.directory,
+              (output) => {
+                if (ws.readyState === WebSocket.OPEN) {
+                  ws.send(
+                    JSON.stringify({
+                      type: 'playbook:output',
+                      source: output.source,
+                      text: output.text,
+                    }),
+                  );
+                }
+              },
+              (commands) => {
+                if (ws.readyState === WebSocket.OPEN) {
+                  ws.send(JSON.stringify({ type: 'playbook:status', commands }));
+                }
+              },
+            );
+            return;
+          }
+
+          if (msg.type === 'playbook:stop') {
+            stopPlaybook(session.id);
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: 'playbook:stopped' }));
+            }
+            return;
+          }
+
+          if (msg.type === 'playbook:select' && typeof msg.playbookName === 'string') {
+            sessionPlaybooks.set(session.id, msg.playbookName);
+            persistPlaybookSelection();
+            return;
+          }
+
+          if (msg.type === 'playbook:replay') {
+            const state = getPlaybookState(session.id);
+            if (state && ws.readyState === WebSocket.OPEN) {
+              for (const log of state.logs) {
+                ws.send(
+                  JSON.stringify({ type: 'playbook:output', source: log.source, text: log.text }),
+                );
+              }
+              ws.send(JSON.stringify({ type: 'playbook:status', commands: state.commands }));
+            }
+            return;
+          }
         } catch {
           // Not valid JSON — treat as terminal input
         }
@@ -216,6 +293,7 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
         port,
         cleanup: () => {
           stopNotificationWatcher();
+          stopAllPlaybooks();
           killAllSessions();
           server.close();
         },

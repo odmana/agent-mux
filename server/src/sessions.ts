@@ -5,6 +5,7 @@ import { join } from 'node:path';
 
 import { type IPty, type IDisposable } from 'node-pty';
 
+import { stopPlaybook } from './playbook-manager.js';
 import { createPty, killPty } from './pty-manager.js';
 
 const SCROLLBACK_LIMIT = 100 * 1024; // 100KB
@@ -160,6 +161,7 @@ export function reorderSessions(orderedIds: string[]): void {
 export function deleteSession(id: string): void {
   const session = sessions.get(id);
   if (!session) return;
+  stopPlaybook(id);
   // Cascade: delete aux child
   for (const [childId, child] of sessions) {
     if (child.parentId === id) {
@@ -182,6 +184,7 @@ export function killAllSessions(): void {
   for (const watcher of branchWatchers.values()) watcher.close();
   branchWatchers.clear();
   for (const session of sessions.values()) {
+    stopPlaybook(session.id);
     session.scrollbackDisposable.dispose();
     killPty(session.pty);
   }

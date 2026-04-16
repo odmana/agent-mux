@@ -5,6 +5,7 @@ import { resolve, dirname, basename } from 'node:path';
 import { Router } from 'express';
 import * as v from 'valibot';
 
+import type { PlaybookConfig } from './config.js';
 import { fuzzyMatch } from './fuzzy-match.js';
 import { checkHooksStatus, installHooks } from './hooks-setup.js';
 import { clearSessionState } from './notification-watcher.js';
@@ -68,28 +69,43 @@ export function listDirectories(prefix: string): DirectorySuggestion[] {
   }
 }
 
+const sessionPlaybooks = new Map<string, string>();
+export { sessionPlaybooks };
+
 export function createRouter(
   shell: string,
   initialCommand?: string,
   auxInitialCommand?: string,
   defaultDirectory?: string,
   statePath?: string,
+  playbooks?: PlaybookConfig[],
 ): Router {
   const router = Router();
 
   function persistSessions(): void {
-    const sessions = getAllPrimarySessions().map((s) => ({ directory: s.directory }));
+    const sessions = getAllPrimarySessions().map((s) => {
+      const entry: { directory: string; playbook?: string } = { directory: s.directory };
+      const pb = sessionPlaybooks.get(s.id);
+      if (pb) entry.playbook = pb;
+      return entry;
+    });
     updateState(statePath, { sessions });
   }
 
   // Restore sessions from persisted state
   const savedState = loadState(statePath);
   if (savedState.sessions && savedState.sessions.length > 0) {
-    const valid: { directory: string }[] = [];
+    const playbookNames = new Set((playbooks ?? []).map((p) => p.name));
+    const valid: { directory: string; playbook?: string }[] = [];
     for (const entry of savedState.sessions) {
       if (existsSync(entry.directory)) {
-        createSession(entry.directory, shell, initialCommand);
-        valid.push(entry);
+        const session = createSession(entry.directory, shell, initialCommand);
+        if (entry.playbook && playbookNames.has(entry.playbook)) {
+          sessionPlaybooks.set(session.id, entry.playbook);
+          valid.push(entry);
+        } else {
+          valid.push({ directory: entry.directory });
+        }
       }
     }
     if (valid.length !== savedState.sessions.length) {
@@ -139,12 +155,20 @@ export function createRouter(
   router.get('/api/sessions', (_req, res) => {
     const sessions = getAllPrimarySessions().map((s) => {
       const aux = getAuxSession(s.id);
-      const entry: { id: string; directory: string; branch: string; auxId?: string } = {
+      const entry: {
+        id: string;
+        directory: string;
+        branch: string;
+        auxId?: string;
+        playbook?: string;
+      } = {
         id: s.id,
         directory: s.directory,
         branch: s.branch,
       };
       if (aux) entry.auxId = aux.id;
+      const pb = sessionPlaybooks.get(s.id);
+      if (pb) entry.playbook = pb;
       return entry;
     });
     res.json(sessions);
@@ -158,6 +182,7 @@ export function createRouter(
     const aux = getAuxSession(req.params.id);
     if (aux) clearSessionState(aux.id);
     clearSessionState(req.params.id);
+    sessionPlaybooks.delete(req.params.id);
     deleteSession(req.params.id);
     persistSessions();
     res.status(204).end();
@@ -191,7 +216,7 @@ export function createRouter(
   });
 
   router.get('/api/config', (_req, res) => {
-    res.json({ defaultDirectory });
+    res.json({ defaultDirectory, playbooks: playbooks ?? [] });
   });
 
   router.get('/api/state', (_req, res) => {
