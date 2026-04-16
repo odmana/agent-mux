@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } fr
 
 import { uiColors } from '../terminal-config';
 import type { PlaybookCommandStatus, PlaybookLogEntry } from '../types';
+import ScrollArea from './ScrollArea';
 
 const ansiConverter = new AnsiToHtml({
   fg: '#d8dee9',
@@ -170,10 +171,10 @@ export default function PlaybookView({
       </div>
 
       {/* Log stream */}
-      <div
+      <ScrollArea
         ref={logContainerRef}
         onScroll={handleScroll}
-        className="relative flex-1 overflow-y-auto p-4 font-mono text-sm"
+        className="relative flex-1 p-4 font-mono text-sm"
       >
         {filteredLogs.map((log, i) => {
           const color = labelColorMap.get(log.source) ?? uiColors.accent;
@@ -196,7 +197,7 @@ export default function PlaybookView({
             {isRunning ? 'Waiting for output...' : 'Press Start to run the playbook'}
           </div>
         )}
-      </div>
+      </ScrollArea>
 
       {/* Jump to tail */}
       {showJumpToTail && (
