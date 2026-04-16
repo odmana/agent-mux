@@ -189,8 +189,8 @@ export default function App() {
         next[prevId] = 'none';
         changed = true;
       }
-      // Clear idle/working on the tab we're switching to
-      if (next[id] === 'idle' || next[id] === 'working') {
+      // Clear idle/working on the tab we're switching to (unless playbook view is covering the terminal)
+      if (!showPlaybookRef.current[id] && (next[id] === 'idle' || next[id] === 'working')) {
         next[id] = 'none';
         changed = true;
       }
@@ -223,9 +223,20 @@ export default function App() {
         } else {
           const opening = !showPlaybookRef.current[currentId];
           setShowPlaybook((prev) => ({ ...prev, [currentId]: opening }));
-          // Close aux when opening playbook
-          if (opening && activeShellRef.current[currentId] === 'aux') {
-            setActiveShell((prev) => ({ ...prev, [currentId]: 'primary' }));
+          if (opening) {
+            // Close aux when opening playbook
+            if (activeShellRef.current[currentId] === 'aux') {
+              setActiveShell((prev) => ({ ...prev, [currentId]: 'primary' }));
+            }
+          } else {
+            // Closing playbook — terminal is now visible, clear idle/working
+            setNotificationStates((prev) => {
+              const state = prev[currentId];
+              if (state === 'idle' || state === 'working') {
+                return { ...prev, [currentId]: 'none' };
+              }
+              return prev;
+            });
           }
         }
         return;

@@ -35,9 +35,11 @@ export default function TabItem({
       .split(/[\\/]/)
       .pop() || session.directory;
 
-  // Green/red dots: all tabs. Blue dots: background tabs only.
+  // Green/red dots: all tabs. Blue dots: background tabs only
+  // (or when the terminal is obscured by aux/playbook view).
+  const terminalObscured = isAuxActive || isPlaybookActive;
   const showDot =
-    (notificationState === 'idle' && (!isActive || isAuxActive)) ||
+    (notificationState === 'idle' && (!isActive || terminalObscured)) ||
     notificationState === 'working' ||
     notificationState === 'permission';
   const dotColor =
