@@ -1,6 +1,6 @@
 import AnsiToHtml from 'ansi-to-html';
 import { Play, Square } from 'lucide-react';
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 
 import { uiColors } from '../terminal-config';
 import type { PlaybookCommandStatus, PlaybookLogEntry } from '../types';
@@ -47,6 +47,11 @@ export default function PlaybookView({
   );
   const logContainerRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
+  // Swallow the scroll event that our own programmatic scroll generates —
+  // otherwise a burst of new logs (common on Windows where child stdout arrives
+  // in large chunks) can race the async scroll event and read stale scrollTop
+  // against fresh scrollHeight, flipping atBottom to false and disabling tail-follow.
+  const suppressNextScrollEvent = useRef(false);
   const [showJumpToTail, setShowJumpToTail] = useState(false);
 
   // Update filters when commands change (new playbook selected)
@@ -55,17 +60,24 @@ export default function PlaybookView({
     setActiveFilters(new Set(commands.map((c) => c.label)));
   }, [commandLabelsKey, commands]);
 
-  // Auto-scroll to bottom when new logs arrive
-  useEffect(() => {
-    if (isAtBottomRef.current && logContainerRef.current) {
-      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+  // Auto-scroll to bottom when new logs arrive. Layout effect so it runs after DOM
+  // commit but before paint, avoiding a race where the next log appends before this fires.
+  useLayoutEffect(() => {
+    const el = logContainerRef.current;
+    if (isAtBottomRef.current && el) {
+      suppressNextScrollEvent.current = true;
+      el.scrollTop = el.scrollHeight;
     }
   }, [logs.length]);
 
   const handleScroll = useCallback(() => {
+    if (suppressNextScrollEvent.current) {
+      suppressNextScrollEvent.current = false;
+      return;
+    }
     const el = logContainerRef.current;
     if (!el) return;
-    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 30;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
     isAtBottomRef.current = atBottom;
     setShowJumpToTail(!atBottom);
   }, []);
@@ -73,6 +85,7 @@ export default function PlaybookView({
   const jumpToTail = useCallback(() => {
     const el = logContainerRef.current;
     if (!el) return;
+    suppressNextScrollEvent.current = true;
     el.scrollTop = el.scrollHeight;
     isAtBottomRef.current = true;
     setShowJumpToTail(false);

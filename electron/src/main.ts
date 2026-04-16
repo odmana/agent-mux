@@ -69,8 +69,11 @@ function resolveClientDist(): string {
   return join(import.meta.dirname, '../../client/dist');
 }
 
-function quit() {
-  serverInstance?.cleanup();
+let quitting = false;
+async function quit() {
+  if (quitting) return;
+  quitting = true;
+  await serverInstance?.cleanup();
   process.exit(0);
 }
 
@@ -100,7 +103,9 @@ async function start() {
   mainWindow.setAutoHideMenuBar(true);
 
   // In dev:hot mode, load from Vite dev server for HMR; otherwise load from the bundled server
-  const clientUrl = devHot ? 'http://localhost:5173' : `http://localhost:${serverInstance.port}`;
+  const clientUrl = devHot
+    ? `http://localhost:${serverInstance.clientPort}`
+    : `http://localhost:${serverInstance.port}`;
 
   if (devHot) {
     // Vite dev server may not be ready yet — retry until it is
@@ -167,3 +172,9 @@ async function start() {
 }
 
 app.on('window-all-closed', quit);
+
+// In dev, `pnpm dev` propagates Ctrl+C as SIGINT. Without these handlers the
+// process dies before cleanup runs, leaving playbook child processes orphaned.
+process.on('SIGINT', quit);
+process.on('SIGTERM', quit);
+process.on('SIGHUP', quit);

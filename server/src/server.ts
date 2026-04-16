@@ -41,7 +41,8 @@ export type { NotificationState } from './notification-watcher.js';
 export interface ServerInstance {
   server: Server;
   port: number;
-  cleanup: () => void;
+  clientPort: number;
+  cleanup: () => Promise<void>;
   onNotificationStateChange: (
     handler: (sessionId: string, state: NotificationState) => void,
   ) => void;
@@ -291,9 +292,10 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
       resolvePromise({
         server,
         port,
-        cleanup: () => {
+        clientPort: config.clientPort,
+        cleanup: async () => {
           stopNotificationWatcher();
-          stopAllPlaybooks();
+          await stopAllPlaybooks();
           killAllSessions();
           server.close();
         },
