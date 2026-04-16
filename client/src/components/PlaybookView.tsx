@@ -1,4 +1,5 @@
 import AnsiToHtml from 'ansi-to-html';
+import { Play, Square } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 
 import { uiColors } from '../terminal-config';
@@ -115,13 +116,13 @@ export default function PlaybookView({
         </button>
         <button
           onClick={isRunning ? onStop : onStart}
-          className="shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+          className="shrink-0 rounded-lg p-1.5 transition-colors"
           style={{
             backgroundColor: isRunning ? uiColors.dangerBg : 'rgba(163, 190, 140, 0.2)',
             color: isRunning ? uiColors.dangerText : '#a3be8c',
           }}
         >
-          {isRunning ? 'Stop' : 'Start'}
+          {isRunning ? <Square size={16} /> : <Play size={16} />}
         </button>
       </div>
 
