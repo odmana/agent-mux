@@ -1,3 +1,4 @@
+import { Play } from 'lucide-react';
 import { useState } from 'react';
 
 import { uiColors } from '../terminal-config';
@@ -9,6 +10,7 @@ interface TabItemProps {
   isActive: boolean;
   isAuxActive: boolean;
   isPlaybookActive: boolean;
+  isPlaybookRunning: boolean;
   notificationState: NotificationState;
   index: number;
   onClick: () => void;
@@ -20,6 +22,7 @@ export default function TabItem({
   isActive,
   isAuxActive,
   isPlaybookActive,
+  isPlaybookRunning,
   notificationState,
   index,
   onClick,
@@ -135,7 +138,10 @@ export default function TabItem({
                   aux
                 </span>
               )}
-              {isPlaybookActive && (
+              {isPlaybookRunning && (
+                <Play size={10} className="shrink-0" style={{ color: '#a3be8c' }} />
+              )}
+              {isPlaybookActive && !isPlaybookRunning && (
                 <span
                   className="shrink-0 rounded px-1 py-0.5 font-mono text-[9px] leading-none font-bold uppercase"
                   style={{
