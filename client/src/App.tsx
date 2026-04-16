@@ -15,6 +15,26 @@ import type {
   PlaybookLogEntry,
 } from './types';
 
+// Keep in sync with LOG_BUFFER_LIMIT in server/src/playbook-manager.ts — the server
+// caps its ring buffer at this size; the client drops the oldest entries to match
+// so long-running playbooks don't grow the tab's memory unbounded.
+const PLAYBOOK_LOG_BUFFER_LIMIT = 100 * 1024;
+
+function appendPlaybookLog(
+  existing: PlaybookLogEntry[] | undefined,
+  entry: PlaybookLogEntry,
+): PlaybookLogEntry[] {
+  const next = existing ? [...existing, entry] : [entry];
+  let total = 0;
+  for (const log of next) total += log.text.length;
+  let start = 0;
+  while (total > PLAYBOOK_LOG_BUFFER_LIMIT && start < next.length - 1) {
+    total -= next[start].text.length;
+    start++;
+  }
+  return start === 0 ? next : next.slice(start);
+}
+
 export default function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -454,7 +474,7 @@ export default function App() {
               onPlaybookOutput={(entry) => {
                 setPlaybookLogs((prev) => ({
                   ...prev,
-                  [session.id]: [...(prev[session.id] ?? []), entry],
+                  [session.id]: appendPlaybookLog(prev[session.id], entry),
                 }));
               }}
               onPlaybookStatusChange={(commands) => {
