@@ -13,6 +13,7 @@
 ### Task 1: Config Schema — Add Playbooks to Config
 
 **Files:**
+
 - Modify: `server/src/config.ts`
 - Test: `server/test/config.test.ts`
 
@@ -145,6 +146,7 @@ git commit -m "feat(playbooks): add playbook config schema and parsing"
 ### Task 2: State Persistence — Add Playbook Selection to State
 
 **Files:**
+
 - Modify: `server/src/state.ts`
 - Test: `server/test/state.test.ts` (new)
 
@@ -220,6 +222,7 @@ git commit -m "feat(playbooks): add playbook selection to persisted state"
 ### Task 3: Playbook Manager — Server-Side Execution Engine
 
 **Files:**
+
 - Create: `server/src/playbook-manager.ts`
 - Test: `server/test/playbook-manager.test.ts` (new)
 
@@ -495,6 +498,7 @@ git commit -m "feat(playbooks): add playbook manager with concurrently execution
 ### Task 4: Server Integration — WebSocket Messages and Routes
 
 **Files:**
+
 - Modify: `server/src/server.ts`
 - Modify: `server/src/routes.ts`
 - Modify: `server/src/sessions.ts`
@@ -504,11 +508,13 @@ git commit -m "feat(playbooks): add playbook manager with concurrently execution
 In `server/src/routes.ts`:
 
 Add import at top:
+
 ```typescript
 import type { PlaybookConfig } from './config.js';
 ```
 
 Update `createRouter` signature to accept playbooks:
+
 ```typescript
 export function createRouter(
   shell: string,
@@ -521,11 +527,13 @@ export function createRouter(
 ```
 
 Update the `persistSessions` function to preserve playbook selections. Add a `sessionPlaybooks` map to track selections:
+
 ```typescript
 const sessionPlaybooks = new Map<string, string>();
 ```
 
 Update `persistSessions` to include playbook:
+
 ```typescript
 function persistSessions(): void {
   const sessions = getAllPrimarySessions().map((s) => {
@@ -539,6 +547,7 @@ function persistSessions(): void {
 ```
 
 Update session restore (around line 86) to restore playbook selections. Silently clear playbook names that no longer exist in config:
+
 ```typescript
 const savedState = loadState(statePath);
 if (savedState.sessions && savedState.sessions.length > 0) {
@@ -563,6 +572,7 @@ if (savedState.sessions && savedState.sessions.length > 0) {
 ```
 
 Update `/api/config` endpoint to include playbooks:
+
 ```typescript
 router.get('/api/config', (_req, res) => {
   res.json({ defaultDirectory, playbooks: playbooks ?? [] });
@@ -570,11 +580,18 @@ router.get('/api/config', (_req, res) => {
 ```
 
 Update `/api/sessions` GET to include playbook selection:
+
 ```typescript
 router.get('/api/sessions', (_req, res) => {
   const sessions = getAllPrimarySessions().map((s) => {
     const aux = getAuxSession(s.id);
-    const entry: { id: string; directory: string; branch: string; auxId?: string; playbook?: string } = {
+    const entry: {
+      id: string;
+      directory: string;
+      branch: string;
+      auxId?: string;
+      playbook?: string;
+    } = {
       id: s.id,
       directory: s.directory,
       branch: s.branch,
@@ -589,11 +606,13 @@ router.get('/api/sessions', (_req, res) => {
 ```
 
 Export `sessionPlaybooks` for use by server.ts:
+
 ```typescript
 export { sessionPlaybooks };
 ```
 
 Also handle cleanup in DELETE session handler — add before `deleteSession` call:
+
 ```typescript
 sessionPlaybooks.delete(req.params.id);
 ```
@@ -603,8 +622,14 @@ sessionPlaybooks.delete(req.params.id);
 In `server/src/server.ts`:
 
 Add imports:
+
 ```typescript
-import { startPlaybook, stopPlaybook, getPlaybookState, stopAllPlaybooks } from './playbook-manager.js';
+import {
+  startPlaybook,
+  stopPlaybook,
+  getPlaybookState,
+  stopAllPlaybooks,
+} from './playbook-manager.js';
 import { sessionPlaybooks } from './routes.js';
 import { updateState } from './state.js';
 import { getAllPrimarySessions } from './sessions.js';
@@ -613,6 +638,7 @@ import { getAllPrimarySessions } from './sessions.js';
 Note: `getSession`, `getAuxSession`, `killAllSessions`, `onBranchChange`, and the `Session` type are already imported from `sessions.js`. Just add `getAllPrimarySessions` to the existing import.
 
 Update `createRouter` call to pass playbooks:
+
 ```typescript
 app.use(
   createRouter(
@@ -627,6 +653,7 @@ app.use(
 ```
 
 Add a helper function inside `startServer` (before the WebSocket handler) to persist playbook selections:
+
 ```typescript
 function persistPlaybookSelection(statePath?: string): void {
   const allSessions = getAllPrimarySessions();
@@ -655,7 +682,9 @@ if (msg.type === 'playbook:start' && typeof msg.playbookName === 'string') {
     session.directory,
     (output) => {
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'playbook:output', source: output.source, text: output.text }));
+        ws.send(
+          JSON.stringify({ type: 'playbook:output', source: output.source, text: output.text }),
+        );
       }
     },
     (commands) => {
@@ -694,6 +723,7 @@ if (msg.type === 'playbook:replay') {
 ```
 
 Update `cleanup` in the server resolve (around line 217) to also stop playbooks:
+
 ```typescript
 cleanup: () => {
   stopNotificationWatcher();
@@ -708,11 +738,13 @@ cleanup: () => {
 In `server/src/sessions.ts`:
 
 Add import:
+
 ```typescript
 import { stopPlaybook } from './playbook-manager.js';
 ```
 
 Update `deleteSession` to stop playbook before killing PTY:
+
 ```typescript
 export function deleteSession(id: string): void {
   const session = sessions.get(id);
@@ -723,6 +755,7 @@ export function deleteSession(id: string): void {
 ```
 
 Update `killAllSessions` to stop playbooks:
+
 ```typescript
 export function killAllSessions(): void {
   for (const watcher of branchWatchers.values()) watcher.close();
@@ -759,6 +792,7 @@ git commit -m "feat(playbooks): integrate playbook manager with WebSocket and ro
 ### Task 5: Client Types and Config Loading
 
 **Files:**
+
 - Modify: `client/src/types.ts`
 - Modify: `client/src/App.tsx`
 
@@ -806,11 +840,13 @@ export interface Session {
 In `client/src/App.tsx`:
 
 Add import for new types:
+
 ```typescript
 import type { Session, NotificationState, PlaybookConfig } from './types';
 ```
 
 Add state for playbooks (after `loading` state, around line 30):
+
 ```typescript
 const [playbooks, setPlaybooks] = useState<PlaybookConfig[]>([]);
 const [showPlaybook, setShowPlaybook] = useState<Record<string, boolean>>({});
@@ -819,6 +855,7 @@ showPlaybookRef.current = showPlaybook;
 ```
 
 Update the `/api/config` fetch (around line 43) to also extract playbooks:
+
 ```typescript
 fetch('/api/config')
   .then((res) => res.json())
@@ -846,6 +883,7 @@ git commit -m "feat(playbooks): add client types and config loading"
 ### Task 6: Playbook Selector Component
 
 **Files:**
+
 - Create: `client/src/components/PlaybookSelector.tsx`
 
 - [ ] **Step 1: Create the PlaybookSelector component**
@@ -1015,6 +1053,7 @@ git commit -m "feat(playbooks): add fuzzy playbook selector modal"
 ### Task 7: Playbook View Component
 
 **Files:**
+
 - Create: `client/src/components/PlaybookView.tsx`
 
 - [ ] **Step 1: Install ansi-to-html dependency**
@@ -1024,6 +1063,7 @@ cd /Users/work/projects/agent-mux && pnpm -C client add ansi-to-html --save-exac
 ```
 
 Check if types are needed:
+
 ```bash
 pnpm -C client add -D @types/ansi-to-html --save-exact 2>/dev/null || true
 ```
@@ -1247,6 +1287,7 @@ git commit -m "feat(playbooks): add playbook view with log stream and filters"
 ### Task 8: Integrate Playbook UI into App Shell
 
 **Files:**
+
 - Modify: `client/src/App.tsx`
 - Modify: `client/src/components/TerminalPane.tsx`
 
@@ -1255,16 +1296,26 @@ git commit -m "feat(playbooks): add playbook view with log stream and filters"
 In `client/src/App.tsx`:
 
 Add imports:
+
 ```typescript
 import PlaybookSelector from './components/PlaybookSelector';
 import PlaybookView from './components/PlaybookView';
-import type { Session, NotificationState, PlaybookConfig, PlaybookCommandStatus, PlaybookLogEntry } from './types';
+import type {
+  Session,
+  NotificationState,
+  PlaybookConfig,
+  PlaybookCommandStatus,
+  PlaybookLogEntry,
+} from './types';
 ```
 
 Add per-session playbook state (after the existing state declarations):
+
 ```typescript
 const [playbookLogs, setPlaybookLogs] = useState<Record<string, PlaybookLogEntry[]>>({});
-const [playbookStatuses, setPlaybookStatuses] = useState<Record<string, PlaybookCommandStatus[]>>({});
+const [playbookStatuses, setPlaybookStatuses] = useState<Record<string, PlaybookCommandStatus[]>>(
+  {},
+);
 const [playbookRunning, setPlaybookRunning] = useState<Record<string, boolean>>({});
 const [showPlaybookSelector, setShowPlaybookSelector] = useState(false);
 ```
@@ -1289,11 +1340,13 @@ if (e.code === 'Backslash' && !e.shiftKey) {
 ```
 
 Update the existing `Backslash` handler check to require `e.shiftKey`:
+
 ```typescript
 if (e.code === 'Backslash' && e.shiftKey) {
 ```
 
 Update the modifier check at the top of the handler to allow non-shift for backslash:
+
 ```typescript
 const mod = e.metaKey || e.ctrlKey;
 if (!mod) return;
@@ -1301,11 +1354,14 @@ if (!e.shiftKey && e.code !== 'Backslash') return;
 ```
 
 Add playbook selection handler:
+
 ```typescript
 const handleSelectPlaybook = useCallback((playbook: PlaybookConfig) => {
   const currentId = activeIdRef.current;
   if (!currentId) return;
-  setSessions((prev) => prev.map((s) => (s.id === currentId ? { ...s, playbook: playbook.name } : s)));
+  setSessions((prev) =>
+    prev.map((s) => (s.id === currentId ? { ...s, playbook: playbook.name } : s)),
+  );
   setShowPlaybookSelector(false);
   setShowPlaybook((prev) => ({ ...prev, [currentId]: true }));
   // Persist selection via WebSocket
@@ -1314,6 +1370,7 @@ const handleSelectPlaybook = useCallback((playbook: PlaybookConfig) => {
 ```
 
 Add playbook start/stop handlers:
+
 ```typescript
 const handlePlaybookStart = useCallback((sessionId: string) => {
   const session = sessionsRef.current.find((s) => s.id === sessionId);
@@ -1334,12 +1391,14 @@ const handlePlaybookStop = useCallback((sessionId: string) => {
 In `client/src/components/TerminalPane.tsx`:
 
 Add imports:
+
 ```typescript
 import PlaybookView from './PlaybookView';
 import type { PlaybookCommandStatus, PlaybookLogEntry } from '../types';
 ```
 
 Add props for playbook:
+
 ```typescript
 interface TerminalPaneProps {
   session: Session;
@@ -1361,6 +1420,7 @@ interface TerminalPaneProps {
 ```
 
 Compute playbook slide class similar to aux shell:
+
 ```typescript
 const playbookSlide = showPlaybook ? 'translate-x-full' : '';
 const playbookTransition = shouldAnimate ? 'transition-transform duration-200 ease-out' : '';
@@ -1386,6 +1446,7 @@ if (!isActiveTab) {
 ```
 
 Render the PlaybookView as a sibling pane:
+
 ```typescript
 return (
   <>
@@ -1457,6 +1518,7 @@ Update the session rendering in App.tsx to pass playbook props to TerminalPane:
 ```
 
 Add the PlaybookSelector modal render (after the DirectoryPicker):
+
 ```typescript
 {showPlaybookSelector && (
   <PlaybookSelector
@@ -1484,6 +1546,7 @@ git commit -m "feat(playbooks): integrate playbook UI with slide animation and k
 ### Task 9: WebSocket Playbook Message Handling in Client
 
 **Files:**
+
 - Modify: `client/src/hooks/useSession.ts`
 - Modify: `client/src/App.tsx`
 
@@ -1492,11 +1555,18 @@ git commit -m "feat(playbooks): integrate playbook UI with slide animation and k
 In `client/src/hooks/useSession.ts`:
 
 Add types import:
+
 ```typescript
-import type { DisconnectReason, NotificationState, PlaybookCommandStatus, PlaybookLogEntry } from '../types';
+import type {
+  DisconnectReason,
+  NotificationState,
+  PlaybookCommandStatus,
+  PlaybookLogEntry,
+} from '../types';
 ```
 
 Add new callback parameters to `useSession`:
+
 ```typescript
 export function useSession(
   sessionId: string,
@@ -1511,6 +1581,7 @@ export function useSession(
 ```
 
 Add refs for the new callbacks:
+
 ```typescript
 const onPlaybookOutputRef = useRef(onPlaybookOutput);
 onPlaybookOutputRef.current = onPlaybookOutput;
@@ -1521,6 +1592,7 @@ onPlaybookStoppedRef.current = onPlaybookStopped;
 ```
 
 In the `ws.onmessage` handler, add playbook message parsing after the existing `branch_update` check:
+
 ```typescript
 if (msg.type === 'playbook:output') {
   onPlaybookOutputRef.current?.({ source: msg.source, text: msg.text });
@@ -1537,6 +1609,7 @@ if (msg.type === 'playbook:stopped') {
 ```
 
 Add a `sendMessage` function exposed from the hook for sending playbook control messages:
+
 ```typescript
 const sendMessage = useCallback((msg: object) => {
   const ws = wsRef.current;
@@ -1549,6 +1622,7 @@ return { disconnectReason, reconnect, sendMessage };
 ```
 
 Update the `UseSessionResult` interface:
+
 ```typescript
 export interface UseSessionResult {
   disconnectReason: DisconnectReason | null;
@@ -1562,6 +1636,7 @@ export interface UseSessionResult {
 In `client/src/components/TerminalPane.tsx`, update the `useSession` call to receive `sendMessage` and pass playbook callbacks through:
 
 Add callback props:
+
 ```typescript
 interface TerminalPaneProps {
   // ... existing props ...
@@ -1575,6 +1650,7 @@ interface TerminalPaneProps {
 Actually, a cleaner approach: expose `sendMessage` from TerminalPane back to App via a ref or callback. The simplest approach is to have App pass the start/stop handlers that know the session ID, and have TerminalPane call `sendMessage` when the user clicks start/stop.
 
 Update TerminalPane to expose sendMessage:
+
 ```typescript
 const { disconnectReason, reconnect, sendMessage } = useSession(
   session.id,
@@ -1589,6 +1665,7 @@ const { disconnectReason, reconnect, sendMessage } = useSession(
 ```
 
 Wire up the PlaybookView start/stop to send WebSocket messages:
+
 ```typescript
 onStart={() => {
   sendMessage({ type: 'playbook:start', playbookName: playbookName });
@@ -1633,11 +1710,13 @@ When a playbook is selected, we need to notify the server and request any existi
 The WebSocket message needs to be sent from the TerminalPane that has the active WS connection. Add a mechanism for App to trigger messages. The cleanest approach is a ref-based callback.
 
 Add to App.tsx:
+
 ```typescript
 const sendPlaybookMessageRef = useRef<Record<string, (msg: object) => void>>({});
 ```
 
 Add prop `onSendMessage` to TerminalPane:
+
 ```typescript
 onSendMessage={(sendFn) => {
   sendPlaybookMessageRef.current[session.id] = sendFn;
@@ -1645,6 +1724,7 @@ onSendMessage={(sendFn) => {
 ```
 
 In TerminalPane, call `onSendMessage` when the WS is ready:
+
 ```typescript
 useEffect(() => {
   onSendMessage?.(sendMessage);
@@ -1652,14 +1732,20 @@ useEffect(() => {
 ```
 
 Then in `handleSelectPlaybook`:
+
 ```typescript
 const handleSelectPlaybook = useCallback((playbook: PlaybookConfig) => {
   const currentId = activeIdRef.current;
   if (!currentId) return;
-  setSessions((prev) => prev.map((s) => (s.id === currentId ? { ...s, playbook: playbook.name } : s)));
+  setSessions((prev) =>
+    prev.map((s) => (s.id === currentId ? { ...s, playbook: playbook.name } : s)),
+  );
   setShowPlaybookSelector(false);
   setShowPlaybook((prev) => ({ ...prev, [currentId]: true }));
-  sendPlaybookMessageRef.current[currentId]?.({ type: 'playbook:select', playbookName: playbook.name });
+  sendPlaybookMessageRef.current[currentId]?.({
+    type: 'playbook:select',
+    playbookName: playbook.name,
+  });
   // Request log replay if playbook was already running
   sendPlaybookMessageRef.current[currentId]?.({ type: 'playbook:replay' });
 }, []);
@@ -1682,6 +1768,7 @@ git commit -m "feat(playbooks): wire up WebSocket playbook messages between clie
 ### Task 10: End-to-End Testing and Polish
 
 **Files:**
+
 - Various minor fixes across touched files
 
 - [ ] **Step 1: Run full build**
@@ -1718,8 +1805,14 @@ Set up a test config.json with playbooks:
     {
       "name": "Test Playbook",
       "commands": [
-        { "label": "Server", "command": "node -e \"setInterval(() => console.log('server ping'), 1000)\"" },
-        { "label": "Client", "command": "node -e \"setInterval(() => console.log('client ping'), 1500)\"" }
+        {
+          "label": "Server",
+          "command": "node -e \"setInterval(() => console.log('server ping'), 1000)\""
+        },
+        {
+          "label": "Client",
+          "command": "node -e \"setInterval(() => console.log('client ping'), 1500)\""
+        }
       ]
     }
   ]
@@ -1727,6 +1820,7 @@ Set up a test config.json with playbooks:
 ```
 
 Test the following:
+
 1. `Ctrl/Cmd + \` opens selector when no playbook is set
 2. Selecting a playbook shows PlaybookView with slide animation
 3. Start button starts commands, logs appear with prefixed labels
@@ -1756,6 +1850,7 @@ git commit -m "feat(playbooks): polish and manual testing fixes"
 ### Task 11: Update pnpm lockfile
 
 **Files:**
+
 - Root `pnpm-lock.yaml`
 
 - [ ] **Step 1: Ensure lockfile is up to date**

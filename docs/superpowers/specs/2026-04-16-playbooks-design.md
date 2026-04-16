@@ -147,9 +147,11 @@ The playbook view slides in and out using the same CSS transform animation as th
 ## Dependencies
 
 **New server dependency:**
+
 - `concurrently` — programmatic API for parallel command execution.
 
 **New client dependency:**
+
 - `ansi-to-html` — converts ANSI escape codes to styled HTML for log rendering.
 
 ## New Files

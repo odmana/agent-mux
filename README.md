@@ -94,7 +94,7 @@ Open sessions and their order are saved automatically. When the app restarts, pr
 | `Ctrl/Cmd + Shift + 1-9` | Switch to tab by number |
 | `Ctrl/Cmd + Shift + ↑`   | Previous tab            |
 | `Ctrl/Cmd + Shift + ↓`   | Next tab                |
-| `Ctrl/Cmd + Shift + \`   | Toggle auxiliary shell   |
+| `Ctrl/Cmd + Shift + \`   | Toggle auxiliary shell  |
 
 Shortcut hints are shown as keycap badges on each tab (1-9) and the "New session" button.
 
