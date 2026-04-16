@@ -97,7 +97,7 @@ export default function PlaybookView({
   const filteredLogs = logs.filter((log) => activeFilters.has(log.source));
 
   return (
-    <div className="flex h-full flex-col" style={{ backgroundColor: uiColors.pageBg }}>
+    <div className="relative flex h-full flex-col" style={{ backgroundColor: uiColors.pageBg }}>
       {/* Header */}
       <div
         className="flex items-center gap-3 border-b px-4 py-2.5"

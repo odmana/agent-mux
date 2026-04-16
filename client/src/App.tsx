@@ -116,6 +116,7 @@ export default function App() {
       type: 'playbook:select',
       playbookName: playbook.name,
     });
+    sendPlaybookMessageRef.current[currentId]?.({ type: 'playbook:replay' });
   }, []);
 
   const handlePlaybookStart = useCallback((sessionId: string) => {
@@ -280,6 +281,27 @@ export default function App() {
       delete next[sessionId];
       return next;
     });
+    setPlaybookLogs((prev) => {
+      const next = { ...prev };
+      delete next[sessionId];
+      return next;
+    });
+    setPlaybookStatuses((prev) => {
+      const next = { ...prev };
+      delete next[sessionId];
+      return next;
+    });
+    setPlaybookRunning((prev) => {
+      const next = { ...prev };
+      delete next[sessionId];
+      return next;
+    });
+    setShowPlaybook((prev) => {
+      const next = { ...prev };
+      delete next[sessionId];
+      return next;
+    });
+    delete sendPlaybookMessageRef.current[sessionId];
 
     fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' })
       .then(() => {
@@ -328,6 +350,27 @@ export default function App() {
       delete next[id];
       return next;
     });
+    setPlaybookLogs((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setPlaybookStatuses((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setPlaybookRunning((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setShowPlaybook((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    delete sendPlaybookMessageRef.current[id];
   };
 
   if (loading) {

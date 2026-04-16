@@ -61,6 +61,7 @@ export default function PlaybookSelector({ playbooks, onSelect, onCancel }: Play
     ? playbooks
         .map((p) => ({ playbook: p, match: fuzzyMatch(query, p.name) }))
         .filter((r) => r.match !== null)
+        .slice()
         .toSorted((a, b) => b.match!.score - a.match!.score)
         .map((r) => ({ playbook: r.playbook, matchIndices: r.match!.matchIndices }))
     : playbooks.map((p) => ({ playbook: p, matchIndices: [] as number[] }));

@@ -112,14 +112,11 @@ export async function startPlaybook(
   // Clean up when all commands finish
   result
     .then(() => {
-      // All exited successfully -- keep state for log viewing
+      // All exited successfully -- keep state for log viewing (but mark as not running)
     })
     .catch(() => {
       // At least one errored -- killOthersOn handled the rest
-    })
-    .finally(() => {
       runningPlaybooks.delete(sessionId);
-      onStatusChange([...commandStatuses]);
     });
 }
 
