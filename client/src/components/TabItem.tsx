@@ -8,6 +8,7 @@ interface TabItemProps {
   session: Session;
   isActive: boolean;
   isAuxActive: boolean;
+  isPlaybookActive: boolean;
   notificationState: NotificationState;
   index: number;
   onClick: () => void;
@@ -18,6 +19,7 @@ export default function TabItem({
   session,
   isActive,
   isAuxActive,
+  isPlaybookActive,
   notificationState,
   index,
   onClick,
@@ -131,6 +133,18 @@ export default function TabItem({
                   }}
                 >
                   aux
+                </span>
+              )}
+              {isPlaybookActive && (
+                <span
+                  className="shrink-0 rounded px-1 py-0.5 font-mono text-[9px] leading-none font-bold uppercase"
+                  style={{
+                    background: 'rgba(163, 190, 140, 0.15)',
+                    color: '#a3be8c',
+                    border: '1px solid rgba(163, 190, 140, 0.25)',
+                  }}
+                >
+                  play
                 </span>
               )}
             </div>

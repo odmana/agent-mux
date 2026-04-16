@@ -386,6 +386,7 @@ export default function App() {
         sessions={sessions}
         activeId={activeId}
         activeShell={activeShell}
+        showPlaybook={showPlaybook}
         notificationStates={notificationStates}
         onSelectSession={handleSelectSession}
         onCloseSession={handleCloseSession}

@@ -13,6 +13,7 @@ interface SidebarProps {
   sessions: Session[];
   activeId: string | null;
   activeShell: Record<string, 'primary' | 'aux'>;
+  showPlaybook: Record<string, boolean>;
   notificationStates: Record<string, NotificationState>;
   onSelectSession: (id: string) => void;
   onCloseSession: (id: string) => void;
@@ -26,6 +27,7 @@ export default function Sidebar({
   sessions,
   activeId,
   activeShell,
+  showPlaybook,
   notificationStates,
   onSelectSession,
   onCloseSession,
@@ -125,6 +127,7 @@ export default function Sidebar({
               session={session}
               isActive={session.id === activeId}
               isAuxActive={activeShell[session.id] === 'aux'}
+              isPlaybookActive={showPlaybook[session.id] ?? false}
               notificationState={notificationStates[session.id] ?? 'none'}
               index={index}
               onClick={() => onSelectSession(session.id)}
