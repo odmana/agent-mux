@@ -6,7 +6,7 @@ import Kbd from './components/Kbd';
 import Sidebar from './components/Sidebar';
 import TerminalPane from './components/TerminalPane';
 import { uiColors } from './terminal-config';
-import type { Session, NotificationState } from './types';
+import type { Session, NotificationState, PlaybookConfig } from './types';
 
 export default function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -28,6 +28,10 @@ export default function App() {
   const [defaultDirectory, setDefaultDirectory] = useState('~/');
   const [sidebarWidth, setSidebarWidth] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const [_playbooks, setPlaybooks] = useState<PlaybookConfig[]>([]);
+  const [showPlaybook, _setShowPlaybook] = useState<Record<string, boolean>>({});
+  const showPlaybookRef = useRef(showPlaybook);
+  showPlaybookRef.current = showPlaybook;
 
   useEffect(() => {
     Promise.all([
@@ -42,8 +46,9 @@ export default function App() {
         .catch(() => {}),
       fetch('/api/config')
         .then((res) => res.json())
-        .then((cfg: { defaultDirectory?: string }) => {
+        .then((cfg: { defaultDirectory?: string; playbooks?: PlaybookConfig[] }) => {
           if (cfg.defaultDirectory) setDefaultDirectory(cfg.defaultDirectory);
+          if (cfg.playbooks) setPlaybooks(cfg.playbooks);
         })
         .catch(() => {}),
       fetch('/api/state')
