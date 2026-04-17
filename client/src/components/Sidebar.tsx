@@ -1,15 +1,14 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 
 import { uiColors } from '../terminal-config';
 import type { Session, NotificationState } from '../types';
 import Kbd from './Kbd';
-import TabHoverPopover from './TabHoverPopover';
+import TabHoverPopover, { type HoveredTab, type TabHoverPopoverHandle } from './TabHoverPopover';
 import TabItem from './TabItem';
 
 const MIN_WIDTH = 180;
 const MAX_WIDTH = 400;
 const DEFAULT_WIDTH = 240;
-const HIDE_DELAY_MS = 150;
 
 interface SidebarProps {
   sessions: Session[];
@@ -34,7 +33,6 @@ interface SidebarProps {
 interface HoverState {
   sessionId: string;
   element: HTMLDivElement;
-  rect: DOMRect;
 }
 
 export default function Sidebar({
@@ -60,45 +58,27 @@ export default function Sidebar({
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const [hover, setHover] = useState<HoverState | null>(null);
-  const hideTimerRef = useRef<number | null>(null);
+  const [repositionKey, setRepositionKey] = useState(0);
+  const popoverRef = useRef<TabHoverPopoverHandle | null>(null);
   const widthRef = useRef(width);
   widthRef.current = width;
 
-  const cancelHide = useCallback(() => {
-    if (hideTimerRef.current !== null) {
-      window.clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = null;
-    }
+  const hideImmediately = useCallback(() => {
+    setHover(null);
+    popoverRef.current?.close();
   }, []);
 
-  const scheduleHide = useCallback(() => {
-    cancelHide();
-    hideTimerRef.current = window.setTimeout(() => {
-      setHover(null);
-      hideTimerRef.current = null;
-    }, HIDE_DELAY_MS);
-  }, [cancelHide]);
+  const handleTabHoverStart = useCallback((sessionId: string, element: HTMLDivElement) => {
+    setHover({ sessionId, element });
+  }, []);
 
-  const hideImmediately = useCallback(() => {
-    cancelHide();
+  const handleTabHoverEnd = useCallback(() => {
     setHover(null);
-  }, [cancelHide]);
-
-  const handleTabHoverStart = useCallback(
-    (sessionId: string, element: HTMLDivElement) => {
-      cancelHide();
-      setHover({ sessionId, element, rect: element.getBoundingClientRect() });
-    },
-    [cancelHide],
-  );
-
-  useEffect(() => () => cancelHide(), [cancelHide]);
+  }, []);
 
   useEffect(() => {
     if (!hover) return;
-    const reposition = () => {
-      setHover((prev) => (prev ? { ...prev, rect: prev.element.getBoundingClientRect() } : null));
-    };
+    const reposition = () => setRepositionKey((n) => n + 1);
     window.addEventListener('resize', reposition);
     return () => window.removeEventListener('resize', reposition);
   }, [hover]);
@@ -151,6 +131,20 @@ export default function Sidebar({
   };
 
   const hoveredSession = hover ? sessions.find((s) => s.id === hover.sessionId) : null;
+  const isHoveredPlaybookRunning = hover ? (playbookRunning[hover.sessionId] ?? false) : false;
+  const hoveredTab = useMemo<HoveredTab | null>(
+    () => {
+      if (!hover || !hoveredSession) return null;
+      return {
+        session: hoveredSession,
+        isPlaybookRunning: isHoveredPlaybookRunning,
+        anchorRect: hover.element.getBoundingClientRect(),
+      };
+    },
+    // repositionKey is the signal to re-read the rect after a window resize.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    [hover, hoveredSession, isHoveredPlaybookRunning, repositionKey],
+  );
 
   return (
     <div
@@ -202,7 +196,7 @@ export default function Sidebar({
               onClick={() => onSelectSession(session.id)}
               onClose={() => onCloseSession(session.id)}
               onHoverStart={(el) => handleTabHoverStart(session.id, el)}
-              onHoverEnd={scheduleHide}
+              onHoverEnd={handleTabHoverEnd}
             />
           </div>
         ))}
@@ -237,26 +231,15 @@ export default function Sidebar({
         className="absolute top-0 right-0 h-full w-1 cursor-col-resize transition-colors hover:bg-white/10"
       />
 
-      {hover && hoveredSession && (
-        <TabHoverPopover
-          session={hoveredSession}
-          isPlaybookRunning={playbookRunning[hoveredSession.id] ?? false}
-          hasPlaybooks={hasPlaybooks}
-          anchorRect={hover.rect}
-          onOpenAux={() => {
-            hideImmediately();
-            onOpenAuxForTab(hoveredSession.id);
-          }}
-          onOpenPlaybook={() => {
-            hideImmediately();
-            onOpenPlaybookForTab(hoveredSession.id);
-          }}
-          onStart={() => onStartPlaybookForTab(hoveredSession.id)}
-          onStop={() => onStopPlaybookForTab(hoveredSession.id)}
-          onMouseEnter={cancelHide}
-          onMouseLeave={scheduleHide}
-        />
-      )}
+      <TabHoverPopover
+        ref={popoverRef}
+        hoveredTab={hoveredTab}
+        hasPlaybooks={hasPlaybooks}
+        onOpenAux={onOpenAuxForTab}
+        onOpenPlaybook={onOpenPlaybookForTab}
+        onStart={onStartPlaybookForTab}
+        onStop={onStopPlaybookForTab}
+      />
     </div>
   );
 }
