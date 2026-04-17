@@ -1,5 +1,5 @@
 import AnsiToHtml from 'ansi-to-html';
-import { Play, Square } from 'lucide-react';
+import { Pencil, Play, Square, SquareChevronRight } from 'lucide-react';
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 
 import { uiColors } from '../terminal-config';
@@ -120,17 +120,20 @@ export default function PlaybookView({
       >
         <button
           onClick={onChangePlaybook}
-          className="min-w-0 flex-1 truncate rounded-lg border px-3 py-1.5 text-left text-sm transition-colors hover:border-white/20"
+          title="Change playbook"
+          className="flex h-8 min-w-0 flex-1 items-center gap-1.5 rounded-lg border px-3 text-left text-sm transition-colors hover:border-white/30 hover:bg-white/5"
           style={{
-            borderColor: 'rgba(255,255,255,0.1)',
+            borderColor: 'rgba(255,255,255,0.15)',
             color: uiColors.textPrimary,
           }}
         >
-          {playbookName}
+          <SquareChevronRight size={14} className="shrink-0 opacity-70" />
+          <span className="min-w-0 flex-1 truncate">{playbookName}</span>
+          <Pencil size={12} className="shrink-0 opacity-50" />
         </button>
         <button
           onClick={isRunning ? onStop : onStart}
-          className="shrink-0 rounded-lg p-1.5 transition-colors"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors"
           style={{
             backgroundColor: isRunning ? uiColors.dangerBg : 'rgba(163, 190, 140, 0.2)',
             color: isRunning ? uiColors.dangerText : '#a3be8c',
