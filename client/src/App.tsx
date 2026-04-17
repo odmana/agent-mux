@@ -235,6 +235,15 @@ export default function App() {
     [handleSelectSession],
   );
 
+  const handleOpenPrimaryForTab = useCallback(
+    (sessionId: string) => {
+      if (activeIdRef.current !== sessionId) handleSelectSession(sessionId);
+      setShowPlaybook((prev) => ({ ...prev, [sessionId]: false }));
+      setActiveShell((prev) => ({ ...prev, [sessionId]: 'primary' }));
+    },
+    [handleSelectSession],
+  );
+
   const handleOpenPlaybookForTab = useCallback(
     (sessionId: string) => {
       const session = sessionsRef.current.find((s) => s.id === sessionId);
@@ -493,6 +502,7 @@ export default function App() {
         onReorderSessions={handleReorderSessions}
         onNewTab={() => setShowPicker(true)}
         hasPlaybooks={playbooks.length > 0}
+        onOpenPrimaryForTab={handleOpenPrimaryForTab}
         onOpenAuxForTab={handleOpenAuxForTab}
         onOpenPlaybookForTab={handleOpenPlaybookForTab}
         onStartPlaybookForTab={handleStartPlaybookForTab}

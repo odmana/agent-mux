@@ -23,9 +23,17 @@ export const uiColors = {
   hoverBg: '#353b48',
   // Accents — pulled from terminal ANSI colors
   accent: '#81a1c1',
+  accentBg: 'rgba(129, 161, 193, 0.2)',
+  accentHoverBg: 'rgba(129, 161, 193, 0.32)',
+  accentBorder: 'rgba(129, 161, 193, 0.35)',
+  success: '#a3be8c',
+  successBg: 'rgba(163, 190, 140, 0.2)',
+  successHoverBg: 'rgba(163, 190, 140, 0.32)',
+  successBorder: 'rgba(163, 190, 140, 0.35)',
   dangerBg: 'rgba(191, 97, 106, 0.2)',
   dangerText: '#bf616a',
   dangerHoverBg: 'rgba(191, 97, 106, 0.3)',
+  dangerBorder: 'rgba(191, 97, 106, 0.35)',
   // Notification dots
   notificationIdle: '#81a1c1',
   notificationPermission: '#bf616a',

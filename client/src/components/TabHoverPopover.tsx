@@ -7,14 +7,7 @@ import type { Session } from '../types';
 
 const SHOW_DELAY_MS = 400;
 const HIDE_DELAY_MS = 150;
-const BLUE_BG = 'rgba(129, 161, 193, 0.2)';
-const BLUE_BG_HOVER = 'rgba(129, 161, 193, 0.32)';
-const BLUE_BORDER = 'rgba(129, 161, 193, 0.35)';
-const GREEN = '#a3be8c';
-const GREEN_BG = 'rgba(163, 190, 140, 0.2)';
-const GREEN_BG_HOVER = 'rgba(163, 190, 140, 0.32)';
-const GREEN_BORDER = 'rgba(163, 190, 140, 0.35)';
-const ESTIMATED_HEIGHT = 140;
+const ESTIMATED_HEIGHT = 180;
 
 export interface HoveredTab {
   session: Session;
@@ -31,6 +24,7 @@ interface TabHoverPopoverProps {
   // The popover manages its own show/hide delays based on changes to this.
   hoveredTab: HoveredTab | null;
   hasPlaybooks: boolean;
+  onOpenPrimary: (sessionId: string) => void;
   onOpenAux: (sessionId: string) => void;
   onOpenPlaybook: (sessionId: string) => void;
   onStart: (sessionId: string) => void;
@@ -39,7 +33,7 @@ interface TabHoverPopoverProps {
 
 const TabHoverPopover = forwardRef<TabHoverPopoverHandle, TabHoverPopoverProps>(
   function TabHoverPopover(
-    { hoveredTab, hasPlaybooks, onOpenAux, onOpenPlaybook, onStart, onStop },
+    { hoveredTab, hasPlaybooks, onOpenPrimary, onOpenAux, onOpenPlaybook, onStart, onStop },
     ref,
   ) {
     // `displayed` is what's actually rendered. It lags `hoveredTab` by the
@@ -144,18 +138,36 @@ const TabHoverPopover = forwardRef<TabHoverPopoverHandle, TabHoverPopoverProps>(
         }}
       >
         <button
+          onClick={() => dismissAndRun(() => onOpenPrimary(session.id))}
+          className="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+          style={{
+            background: uiColors.pageBg,
+            color: uiColors.textPrimary,
+            border: `1px solid ${uiColors.activeBorder}`,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = uiColors.activeBg;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = uiColors.pageBg;
+          }}
+        >
+          Primary Terminal
+        </button>
+
+        <button
           onClick={() => dismissAndRun(() => onOpenAux(session.id))}
           className="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
           style={{
-            background: BLUE_BG,
+            background: uiColors.accentBg,
             color: uiColors.accent,
-            border: `1px solid ${BLUE_BORDER}`,
+            border: `1px solid ${uiColors.accentBorder}`,
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = BLUE_BG_HOVER;
+            e.currentTarget.style.background = uiColors.accentHoverBg;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = BLUE_BG;
+            e.currentTarget.style.background = uiColors.accentBg;
           }}
         >
           Aux Terminal
@@ -168,15 +180,15 @@ const TabHoverPopover = forwardRef<TabHoverPopoverHandle, TabHoverPopoverProps>(
             title={playbookDisabled ? 'No playbooks configured' : undefined}
             className="flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
             style={{
-              background: GREEN_BG,
-              color: GREEN,
-              border: `1px solid ${GREEN_BORDER}`,
+              background: uiColors.successBg,
+              color: uiColors.success,
+              border: `1px solid ${uiColors.successBorder}`,
             }}
             onMouseEnter={(e) => {
-              if (!playbookDisabled) e.currentTarget.style.background = GREEN_BG_HOVER;
+              if (!playbookDisabled) e.currentTarget.style.background = uiColors.successHoverBg;
             }}
             onMouseLeave={(e) => {
-              if (!playbookDisabled) e.currentTarget.style.background = GREEN_BG;
+              if (!playbookDisabled) e.currentTarget.style.background = uiColors.successBg;
             }}
           >
             Playbook
@@ -187,9 +199,11 @@ const TabHoverPopover = forwardRef<TabHoverPopoverHandle, TabHoverPopoverProps>(
               aria-label={isPlaybookRunning ? 'Stop playbook' : 'Start playbook'}
               className="flex shrink-0 items-center justify-center rounded-md px-2 transition-colors"
               style={{
-                background: isPlaybookRunning ? uiColors.dangerBg : GREEN_BG,
-                color: isPlaybookRunning ? uiColors.dangerText : GREEN,
-                border: `1px solid ${isPlaybookRunning ? 'rgba(191, 97, 106, 0.35)' : GREEN_BORDER}`,
+                background: isPlaybookRunning ? uiColors.dangerBg : uiColors.successBg,
+                color: isPlaybookRunning ? uiColors.dangerText : uiColors.success,
+                border: `1px solid ${
+                  isPlaybookRunning ? uiColors.dangerBorder : uiColors.successBorder
+                }`,
               }}
             >
               {isPlaybookRunning ? <Square size={12} /> : <Play size={12} />}

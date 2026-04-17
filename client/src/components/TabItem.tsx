@@ -151,7 +151,7 @@ export default function TabItem({
                   className="shrink-0 rounded px-1 py-0.5 font-mono text-[9px] leading-none font-bold uppercase"
                   style={{
                     background: 'rgba(163, 190, 140, 0.15)',
-                    color: '#a3be8c',
+                    color: uiColors.success,
                     border: '1px solid rgba(163, 190, 140, 0.25)',
                   }}
                 >
@@ -159,7 +159,7 @@ export default function TabItem({
                 </span>
               )}
               {isPlaybookRunning && (
-                <Play size={10} className="shrink-0" style={{ color: '#a3be8c' }} />
+                <Play size={10} className="shrink-0" style={{ color: uiColors.success }} />
               )}
             </div>
             <button

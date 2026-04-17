@@ -135,8 +135,8 @@ export default function PlaybookView({
           onClick={isRunning ? onStop : onStart}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors"
           style={{
-            backgroundColor: isRunning ? uiColors.dangerBg : 'rgba(163, 190, 140, 0.2)',
-            color: isRunning ? uiColors.dangerText : '#a3be8c',
+            backgroundColor: isRunning ? uiColors.dangerBg : uiColors.successBg,
+            color: isRunning ? uiColors.dangerText : uiColors.success,
           }}
         >
           {isRunning ? <Square size={16} /> : <Play size={16} />}

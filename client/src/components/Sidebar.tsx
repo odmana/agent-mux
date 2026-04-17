@@ -22,6 +22,7 @@ interface SidebarProps {
   onReorderSessions: (sessions: Session[]) => void;
   onNewTab: () => void;
   hasPlaybooks: boolean;
+  onOpenPrimaryForTab: (sessionId: string) => void;
   onOpenAuxForTab: (sessionId: string) => void;
   onOpenPlaybookForTab: (sessionId: string) => void;
   onStartPlaybookForTab: (sessionId: string) => void;
@@ -47,6 +48,7 @@ export default function Sidebar({
   onReorderSessions,
   onNewTab,
   hasPlaybooks,
+  onOpenPrimaryForTab,
   onOpenAuxForTab,
   onOpenPlaybookForTab,
   onStartPlaybookForTab,
@@ -235,6 +237,7 @@ export default function Sidebar({
         ref={popoverRef}
         hoveredTab={hoveredTab}
         hasPlaybooks={hasPlaybooks}
+        onOpenPrimary={onOpenPrimaryForTab}
         onOpenAux={onOpenAuxForTab}
         onOpenPlaybook={onOpenPlaybookForTab}
         onStart={onStartPlaybookForTab}
