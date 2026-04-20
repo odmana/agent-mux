@@ -133,19 +133,17 @@ export default function Sidebar({
   };
 
   const hoveredSession = hover ? sessions.find((s) => s.id === hover.sessionId) : null;
-  const isHoveredPlaybookRunning = hover ? (playbookRunning[hover.sessionId] ?? false) : false;
   const hoveredTab = useMemo<HoveredTab | null>(
     () => {
       if (!hover || !hoveredSession) return null;
       return {
         session: hoveredSession,
-        isPlaybookRunning: isHoveredPlaybookRunning,
         anchorRect: hover.element.getBoundingClientRect(),
       };
     },
     // repositionKey is the signal to re-read the rect after a window resize.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-    [hover, hoveredSession, isHoveredPlaybookRunning, repositionKey],
+    [hover, hoveredSession, repositionKey],
   );
 
   return (
@@ -236,6 +234,7 @@ export default function Sidebar({
       <TabHoverPopover
         ref={popoverRef}
         hoveredTab={hoveredTab}
+        playbookRunning={playbookRunning}
         hasPlaybooks={hasPlaybooks}
         onOpenPrimary={onOpenPrimaryForTab}
         onOpenAux={onOpenAuxForTab}

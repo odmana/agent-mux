@@ -11,7 +11,6 @@ const ESTIMATED_HEIGHT = 180;
 
 export interface HoveredTab {
   session: Session;
-  isPlaybookRunning: boolean;
   anchorRect: DOMRect;
 }
 
@@ -23,6 +22,10 @@ interface TabHoverPopoverProps {
   // The tab the cursor is currently over, or null if no tab is hovered.
   // The popover manages its own show/hide delays based on changes to this.
   hoveredTab: HoveredTab | null;
+  // Live map of per-session playbook running state. Read by id at render time
+  // so the Start/Stop button reflects the current state even after the cursor
+  // has moved off the tab and `hoveredTab` is null.
+  playbookRunning: Record<string, boolean>;
   hasPlaybooks: boolean;
   onOpenPrimary: (sessionId: string) => void;
   onOpenAux: (sessionId: string) => void;
@@ -33,7 +36,16 @@ interface TabHoverPopoverProps {
 
 const TabHoverPopover = forwardRef<TabHoverPopoverHandle, TabHoverPopoverProps>(
   function TabHoverPopover(
-    { hoveredTab, hasPlaybooks, onOpenPrimary, onOpenAux, onOpenPlaybook, onStart, onStop },
+    {
+      hoveredTab,
+      playbookRunning,
+      hasPlaybooks,
+      onOpenPrimary,
+      onOpenAux,
+      onOpenPlaybook,
+      onStart,
+      onStop,
+    },
     ref,
   ) {
     // `displayed` is what's actually rendered. It lags `hoveredTab` by the
@@ -106,7 +118,8 @@ const TabHoverPopover = forwardRef<TabHoverPopoverHandle, TabHoverPopoverProps>(
 
     if (!displayed) return null;
 
-    const { session, isPlaybookRunning, anchorRect } = displayed;
+    const { session, anchorRect } = displayed;
+    const isPlaybookRunning = playbookRunning[session.id] ?? false;
     const playbookDisabled = !session.playbook && !hasPlaybooks;
     const left = anchorRect.right + 8;
     const top = Math.max(8, Math.min(anchorRect.top, window.innerHeight - ESTIMATED_HEIGHT - 8));
