@@ -9,6 +9,7 @@ import type {
   PlaybookCommandStatus,
   PlaybookLogEntry,
 } from '../types';
+import { WAKE_EVENT } from './useWakeDetector';
 
 export interface UseSessionResult {
   disconnectReason: DisconnectReason | null;
@@ -185,19 +186,32 @@ export function useSession(
     }
   }, [isActive]);
 
-  const sendMessage = useCallback((msg: object) => {
-    const ws = wsRef.current;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(msg));
-    }
-  }, []);
-
   const reconnect = useCallback(() => {
     wsCleanupRef.current?.();
     terminalRef.current?.clear();
     setDisconnectReason(null);
     connectWebSocket(sessionId);
   }, [sessionId, connectWebSocket]);
+
+  // Auto-reconnect after the machine wakes from sleep or the network comes back.
+  // Skip if the socket still looks healthy so we don't clear/replay healthy terminals.
+  useEffect(() => {
+    const handler = () => {
+      const ws = wsRef.current;
+      if (!ws || (ws.readyState !== WebSocket.OPEN && ws.readyState !== WebSocket.CONNECTING)) {
+        reconnect();
+      }
+    };
+    window.addEventListener(WAKE_EVENT, handler);
+    return () => window.removeEventListener(WAKE_EVENT, handler);
+  }, [reconnect]);
+
+  const sendMessage = useCallback((msg: object) => {
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(msg));
+    }
+  }, []);
 
   return { disconnectReason, reconnect, sendMessage };
 }

@@ -6,6 +6,7 @@ import Kbd from './components/Kbd';
 import PlaybookSelector from './components/PlaybookSelector';
 import Sidebar from './components/Sidebar';
 import TerminalPane from './components/TerminalPane';
+import { useWakeDetector } from './hooks/useWakeDetector';
 import { uiColors } from './terminal-config';
 import type {
   Session,
@@ -36,6 +37,8 @@ function appendPlaybookLog(
 }
 
 export default function App() {
+  useWakeDetector();
+
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
