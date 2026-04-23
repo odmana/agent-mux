@@ -132,6 +132,16 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
       ws.send(session.scrollback);
     }
 
+    // Send current config so the client picks up edits made while it had no
+    // open connection (e.g. between app boot and the first session opening).
+    ws.send(
+      JSON.stringify({
+        type: 'config_update',
+        defaultDirectory: runtime.defaultDirectory,
+        playbooks: runtime.playbooks ?? [],
+      }),
+    );
+
     // PTY → client
     const dataHandler = session.pty.onData((data: string) => {
       if (ws.readyState === WebSocket.OPEN) {
@@ -297,6 +307,14 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
       const configWatcher = watchConfig(options.configPath, (next) => {
         updateRuntimeConfig(runtime, next);
         console.log('[config] reloaded');
+        const payload = JSON.stringify({
+          type: 'config_update',
+          defaultDirectory: runtime.defaultDirectory,
+          playbooks: runtime.playbooks ?? [],
+        });
+        for (const ws of activeConnections.values()) {
+          if (ws.readyState === WebSocket.OPEN) ws.send(payload);
+        }
       });
 
       resolvePromise({

@@ -2,7 +2,13 @@ import { useRef, useEffect } from 'react';
 
 import { useSession } from '../hooks/useSession';
 import { terminalConfig } from '../terminal-config';
-import type { Session, NotificationState, PlaybookCommandStatus, PlaybookLogEntry } from '../types';
+import type {
+  Session,
+  NotificationState,
+  PlaybookCommandStatus,
+  PlaybookConfig,
+  PlaybookLogEntry,
+} from '../types';
 import DisconnectOverlay from './DisconnectOverlay';
 import type { PlaybookPending } from './PlaybookToggleButton';
 import PlaybookView from './PlaybookView';
@@ -28,6 +34,7 @@ interface TerminalPaneProps {
   onSendMessage?: (sendFn: (msg: object) => void) => void;
   onNotification?: (sessionId: string, state: NotificationState) => void;
   onBranchUpdate?: (sessionId: string, branch: string) => void;
+  onConfigUpdate?: (cfg: { defaultDirectory?: string; playbooks: PlaybookConfig[] }) => void;
   onRestartSession?: () => void;
 }
 
@@ -52,6 +59,7 @@ export default function TerminalPane({
   onSendMessage,
   onNotification,
   onBranchUpdate,
+  onConfigUpdate,
   onRestartSession,
 }: TerminalPaneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -64,6 +72,7 @@ export default function TerminalPane({
     onPlaybookOutput,
     onPlaybookStatusChange,
     onPlaybookStopped,
+    onConfigUpdate,
   );
 
   useEffect(() => {

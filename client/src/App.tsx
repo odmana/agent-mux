@@ -131,6 +131,17 @@ export default function App() {
     setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, branch } : s)));
   }, []);
 
+  // Broadcast arrives on every open WebSocket, but setState with identical
+  // content is a no-op re-render — fine for a change that happens when the
+  // user edits config.json.
+  const handleConfigUpdate = useCallback(
+    (cfg: { defaultDirectory?: string; playbooks: PlaybookConfig[] }) => {
+      if (cfg.defaultDirectory) setDefaultDirectory(cfg.defaultDirectory);
+      setPlaybooks(cfg.playbooks);
+    },
+    [],
+  );
+
   const handleSelectPlaybook = useCallback((playbook: PlaybookConfig) => {
     const currentId = activeIdRef.current;
     if (!currentId) return;
@@ -600,6 +611,7 @@ export default function App() {
               }}
               onNotification={handleNotification}
               onBranchUpdate={handleBranchUpdate}
+              onConfigUpdate={handleConfigUpdate}
               onRestartSession={() => handleRestartSession(session.id)}
             />
             {session.auxId && (

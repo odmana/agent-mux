@@ -7,6 +7,7 @@ import type {
   DisconnectReason,
   NotificationState,
   PlaybookCommandStatus,
+  PlaybookConfig,
   PlaybookLogEntry,
 } from '../types';
 import { WAKE_EVENT } from './useWakeDetector';
@@ -26,6 +27,7 @@ export function useSession(
   onPlaybookOutput?: (entry: PlaybookLogEntry) => void,
   onPlaybookStatus?: (commands: PlaybookCommandStatus[], startedAt: number | null) => void,
   onPlaybookStopped?: () => void,
+  onConfigUpdate?: (cfg: { defaultDirectory?: string; playbooks: PlaybookConfig[] }) => void,
 ): UseSessionResult {
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -41,6 +43,8 @@ export function useSession(
   onPlaybookStatusRef.current = onPlaybookStatus;
   const onPlaybookStoppedRef = useRef(onPlaybookStopped);
   onPlaybookStoppedRef.current = onPlaybookStopped;
+  const onConfigUpdateRef = useRef(onConfigUpdate);
+  onConfigUpdateRef.current = onConfigUpdate;
 
   const [disconnectReason, setDisconnectReason] = useState<DisconnectReason | null>(null);
 
@@ -86,6 +90,13 @@ export function useSession(
             }
             if (msg.type === 'playbook:stopped') {
               onPlaybookStoppedRef.current?.();
+              return;
+            }
+            if (msg.type === 'config_update') {
+              onConfigUpdateRef.current?.({
+                defaultDirectory: msg.defaultDirectory,
+                playbooks: msg.playbooks ?? [],
+              });
               return;
             }
           } catch {
