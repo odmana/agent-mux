@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import express from 'express';
 import { WebSocketServer, WebSocket } from 'ws';
 
-import { loadConfig } from './config.js';
+import { loadConfig, toRuntimeConfig, updateRuntimeConfig, watchConfig } from './config.js';
 import {
   startNotificationWatcher,
   stopNotificationWatcher,
@@ -50,19 +50,11 @@ export interface ServerInstance {
 
 export function startServer(options: StartServerOptions = {}): Promise<ServerInstance> {
   const config = loadConfig(options.configPath);
+  const runtime = toRuntimeConfig(config);
   const app = express();
 
   app.use(express.json());
-  app.use(
-    createRouter(
-      config.shell,
-      config.initialCommand,
-      config.auxInitialCommand,
-      config.defaultDirectory,
-      options.statePath,
-      config.playbooks,
-    ),
-  );
+  app.use(createRouter(config.shell, runtime, options.statePath));
 
   function persistPlaybookSelection(): void {
     const allSessions = getAllPrimarySessions();
@@ -167,7 +159,7 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
           }
 
           if (msg.type === 'playbook:start' && typeof msg.playbookName === 'string') {
-            const playbook = config.playbooks?.find((p) => p.name === msg.playbookName);
+            const playbook = runtime.playbooks?.find((p) => p.name === msg.playbookName);
             if (!playbook) return;
             sessionPlaybooks.set(session.id, msg.playbookName);
             persistPlaybookSelection();
@@ -289,11 +281,17 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
         },
       });
 
+      const configWatcher = watchConfig(options.configPath, (next) => {
+        updateRuntimeConfig(runtime, next);
+        console.log('[config] reloaded');
+      });
+
       resolvePromise({
         server,
         port,
         clientPort: config.clientPort,
         cleanup: async () => {
+          configWatcher.dispose();
           stopNotificationWatcher();
           await stopAllPlaybooks();
           killAllSessions();

@@ -5,7 +5,7 @@ import { resolve, dirname, basename } from 'node:path';
 import { Router } from 'express';
 import * as v from 'valibot';
 
-import type { PlaybookConfig } from './config.js';
+import type { RuntimeConfig } from './config.js';
 import { fuzzyMatch } from './fuzzy-match.js';
 import { checkHooksStatus, installHooks } from './hooks-setup.js';
 import { clearSessionState } from './notification-watcher.js';
@@ -72,14 +72,7 @@ export function listDirectories(prefix: string): DirectorySuggestion[] {
 const sessionPlaybooks = new Map<string, string>();
 export { sessionPlaybooks };
 
-export function createRouter(
-  shell: string,
-  initialCommand?: string,
-  auxInitialCommand?: string,
-  defaultDirectory?: string,
-  statePath?: string,
-  playbooks?: PlaybookConfig[],
-): Router {
+export function createRouter(shell: string, runtime: RuntimeConfig, statePath?: string): Router {
   const router = Router();
 
   function persistSessions(): void {
@@ -95,11 +88,11 @@ export function createRouter(
   // Restore sessions from persisted state
   const savedState = loadState(statePath);
   if (savedState.sessions && savedState.sessions.length > 0) {
-    const playbookNames = new Set((playbooks ?? []).map((p) => p.name));
+    const playbookNames = new Set((runtime.playbooks ?? []).map((p) => p.name));
     const valid: { directory: string; playbook?: string }[] = [];
     for (const entry of savedState.sessions) {
       if (existsSync(entry.directory)) {
-        const session = createSession(entry.directory, shell, initialCommand);
+        const session = createSession(entry.directory, shell, runtime.initialCommand);
         if (entry.playbook && playbookNames.has(entry.playbook)) {
           sessionPlaybooks.set(session.id, entry.playbook);
           valid.push(entry);
@@ -124,7 +117,7 @@ export function createRouter(
       res.status(400).json({ error: 'directory does not exist' });
       return;
     }
-    const session = createSession(expanded, shell, initialCommand);
+    const session = createSession(expanded, shell, runtime.initialCommand);
     persistSessions();
     res.status(201).json({
       id: session.id,
@@ -148,7 +141,7 @@ export function createRouter(
       res.json({ id: existing.id, directory: existing.directory, branch: existing.branch });
       return;
     }
-    const aux = createAuxSession(req.params.id, shell, auxInitialCommand);
+    const aux = createAuxSession(req.params.id, shell, runtime.auxInitialCommand);
     res.status(201).json({ id: aux.id, directory: aux.directory, branch: aux.branch });
   });
 
@@ -216,7 +209,10 @@ export function createRouter(
   });
 
   router.get('/api/config', (_req, res) => {
-    res.json({ defaultDirectory, playbooks: playbooks ?? [] });
+    res.json({
+      defaultDirectory: runtime.defaultDirectory,
+      playbooks: runtime.playbooks ?? [],
+    });
   });
 
   router.get('/api/state', (_req, res) => {
