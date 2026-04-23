@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 
 import { uiColors } from '../terminal-config';
 import type { Session } from '../types';
-import PlaybookToggleButton from './PlaybookToggleButton';
+import PlaybookToggleButton, { type PlaybookPending } from './PlaybookToggleButton';
 
 const SHOW_DELAY_MS = 400;
 const HIDE_DELAY_MS = 250;
@@ -28,6 +28,7 @@ interface TabHoverPopoverProps {
   // so the Start/Stop button reflects the current state even after the cursor
   // has moved off the tab and `hoveredTab` is null.
   playbookRunning: Record<string, boolean>;
+  playbookPending: Record<string, PlaybookPending>;
   hasPlaybooks: boolean;
   onOpenPrimary: (sessionId: string) => void;
   onOpenAux: (sessionId: string) => void;
@@ -41,6 +42,7 @@ const TabHoverPopover = forwardRef<TabHoverPopoverHandle, TabHoverPopoverProps>(
     {
       hoveredTab,
       playbookRunning,
+      playbookPending,
       hasPlaybooks,
       onOpenPrimary,
       onOpenAux,
@@ -127,6 +129,7 @@ const TabHoverPopover = forwardRef<TabHoverPopoverHandle, TabHoverPopoverProps>(
 
     const { session, anchorRect } = displayed;
     const isPlaybookRunning = playbookRunning[session.id] ?? false;
+    const isPlaybookPending = playbookPending[session.id];
     const playbookDisabled = !session.playbook && !hasPlaybooks;
     // The outer wrapper sits flush against the tab's right edge so the GAP_PX
     // region is inside its hitbox, bridging the cursor path from tab to card.
@@ -238,6 +241,7 @@ const TabHoverPopover = forwardRef<TabHoverPopoverHandle, TabHoverPopoverProps>(
             {session.playbook && (
               <PlaybookToggleButton
                 isRunning={isPlaybookRunning}
+                pending={isPlaybookPending}
                 onStart={() => onStart(session.id)}
                 onStop={() => onStop(session.id)}
                 className="shrink-0 px-2"

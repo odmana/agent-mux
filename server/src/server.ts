@@ -164,7 +164,10 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
             sessionPlaybooks.set(session.id, msg.playbookName);
             persistPlaybookSelection();
 
-            startPlaybook(
+            // Fire-and-forget: startPlaybook awaits the previous playbook's
+            // kill internally, which can take a few hundred ms on Windows.
+            // Errors are surfaced via the status/output callbacks.
+            void startPlaybook(
               session.id,
               playbook,
               session.directory,
@@ -189,10 +192,14 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
           }
 
           if (msg.type === 'playbook:stop') {
-            stopPlaybook(session.id);
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({ type: 'playbook:stopped' }));
-            }
+            // Only tell the client the playbook stopped once the process
+            // tree has actually been torn down — otherwise a quick restart
+            // races the still-dying children and leaves orphans.
+            void stopPlaybook(session.id).then(() => {
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'playbook:stopped' }));
+              }
+            });
             return;
           }
 

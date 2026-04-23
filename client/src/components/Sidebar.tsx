@@ -3,6 +3,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { uiColors } from '../terminal-config';
 import type { Session, NotificationState } from '../types';
 import Kbd from './Kbd';
+import type { PlaybookPending } from './PlaybookToggleButton';
 import TabHoverPopover, { type HoveredTab, type TabHoverPopoverHandle } from './TabHoverPopover';
 import TabItem from './TabItem';
 
@@ -16,6 +17,7 @@ interface SidebarProps {
   activeShell: Record<string, 'primary' | 'aux'>;
   showPlaybook: Record<string, boolean>;
   playbookRunning: Record<string, boolean>;
+  playbookPending: Record<string, PlaybookPending>;
   notificationStates: Record<string, NotificationState>;
   onSelectSession: (id: string) => void;
   onCloseSession: (id: string) => void;
@@ -42,6 +44,7 @@ export default function Sidebar({
   activeShell,
   showPlaybook,
   playbookRunning,
+  playbookPending,
   notificationStates,
   onSelectSession,
   onCloseSession,
@@ -235,6 +238,7 @@ export default function Sidebar({
         ref={popoverRef}
         hoveredTab={hoveredTab}
         playbookRunning={playbookRunning}
+        playbookPending={playbookPending}
         hasPlaybooks={hasPlaybooks}
         onOpenPrimary={onOpenPrimaryForTab}
         onOpenAux={onOpenAuxForTab}

@@ -4,6 +4,7 @@ import { useSession } from '../hooks/useSession';
 import { terminalConfig } from '../terminal-config';
 import type { Session, NotificationState, PlaybookCommandStatus, PlaybookLogEntry } from '../types';
 import DisconnectOverlay from './DisconnectOverlay';
+import type { PlaybookPending } from './PlaybookToggleButton';
 import PlaybookView from './PlaybookView';
 
 interface TerminalPaneProps {
@@ -16,6 +17,7 @@ interface TerminalPaneProps {
   playbookCommands?: PlaybookCommandStatus[];
   playbookLogs?: PlaybookLogEntry[];
   playbookRunning?: boolean;
+  playbookPending?: PlaybookPending;
   playbookStartedAt?: number | null;
   onPlaybookStart?: () => void;
   onPlaybookStop?: () => void;
@@ -39,6 +41,7 @@ export default function TerminalPane({
   playbookCommands,
   playbookLogs,
   playbookRunning,
+  playbookPending,
   playbookStartedAt,
   onPlaybookStart,
   onPlaybookStop,
@@ -123,6 +126,7 @@ export default function TerminalPane({
             commands={playbookCommands ?? []}
             logs={playbookLogs ?? []}
             isRunning={playbookRunning ?? false}
+            pending={playbookPending}
             startedAt={playbookStartedAt ?? null}
             onStart={() => {
               sendMessage({ type: 'playbook:start', playbookName });

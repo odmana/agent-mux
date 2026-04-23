@@ -13,7 +13,8 @@
     "fmt:check": "oxfmt --check .",
     "check": "pnpm lint && pnpm fmt:check",
     "prepare": "simple-git-hooks",
-    "postinstall": "[ \"$(uname)\" != \"Windows_NT\" ] && chmod +x ./node_modules/.pnpm/node-pty@*/node_modules/node-pty/prebuilds/*/spawn-helper 2>/dev/null || true"
+    "postinstall": "[ \"$(uname)\" != \"Windows_NT\" ] && chmod +x ./node_modules/.pnpm/node-pty@*/node_modules/node-pty/prebuilds/*/spawn-helper 2>/dev/null || true",
+    "test": "pnpm -C server test"
   },
   "devDependencies": {
     "lint-staged": "16.4.0",

@@ -65,6 +65,9 @@ export default function App() {
     {},
   );
   const [playbookRunning, setPlaybookRunning] = useState<Record<string, boolean>>({});
+  const [playbookPending, setPlaybookPending] = useState<
+    Record<string, 'starting' | 'stopping' | undefined>
+  >({});
   const [playbookStartedAt, setPlaybookStartedAt] = useState<Record<string, number | null>>({});
   const [showPlaybookSelector, setShowPlaybookSelector] = useState(false);
   const sendPlaybookMessageRef = useRef<Record<string, (msg: object) => void>>({});
@@ -151,11 +154,13 @@ export default function App() {
     setPlaybookLogs((prev) => ({ ...prev, [sessionId]: [] }));
     setPlaybookRunning((prev) => ({ ...prev, [sessionId]: true }));
     setPlaybookStartedAt((prev) => ({ ...prev, [sessionId]: null }));
+    setPlaybookPending((prev) => ({ ...prev, [sessionId]: 'starting' }));
   }, []);
 
   const handlePlaybookStop = useCallback((sessionId: string) => {
-    setPlaybookRunning((prev) => ({ ...prev, [sessionId]: false }));
-    setPlaybookStartedAt((prev) => ({ ...prev, [sessionId]: null }));
+    // Keep playbookRunning true until the server confirms the kill — the
+    // button shows "Stopping…" via pending state in the meantime.
+    setPlaybookPending((prev) => ({ ...prev, [sessionId]: 'stopping' }));
   }, []);
 
   const handleReorderSessions = useCallback((reordered: Session[]) => {
@@ -410,6 +415,11 @@ export default function App() {
       delete next[sessionId];
       return next;
     });
+    setPlaybookPending((prev) => {
+      const next = { ...prev };
+      delete next[sessionId];
+      return next;
+    });
     setShowPlaybook((prev) => {
       const next = { ...prev };
       delete next[sessionId];
@@ -479,6 +489,11 @@ export default function App() {
       delete next[id];
       return next;
     });
+    setPlaybookPending((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
     setShowPlaybook((prev) => {
       const next = { ...prev };
       delete next[id];
@@ -502,6 +517,7 @@ export default function App() {
         activeShell={activeShell}
         showPlaybook={showPlaybook}
         playbookRunning={playbookRunning}
+        playbookPending={playbookPending}
         notificationStates={notificationStates}
         onSelectSession={handleSelectSession}
         onCloseSession={handleCloseSession}
@@ -545,6 +561,7 @@ export default function App() {
               playbookCommands={playbookStatuses[session.id]}
               playbookLogs={playbookLogs[session.id]}
               playbookRunning={playbookRunning[session.id]}
+              playbookPending={playbookPending[session.id]}
               playbookStartedAt={playbookStartedAt[session.id]}
               onPlaybookStart={() => handlePlaybookStart(session.id)}
               onPlaybookStop={() => handlePlaybookStop(session.id)}
@@ -560,17 +577,23 @@ export default function App() {
                 if (startedAt !== null) {
                   setPlaybookStartedAt((prev) => ({ ...prev, [session.id]: startedAt }));
                 }
-                const allDone = commands.every((c) => c.status !== 'running');
-                if (allDone) {
+                const anyRunning = commands.some((c) => c.status === 'running');
+                if (anyRunning) {
+                  setPlaybookRunning((prev) => ({ ...prev, [session.id]: true }));
+                  // First status from a new run clears the "Starting…" pending.
+                  setPlaybookPending((prev) => {
+                    if (prev[session.id] !== 'starting') return prev;
+                    return { ...prev, [session.id]: undefined };
+                  });
+                } else {
                   setPlaybookRunning((prev) => ({ ...prev, [session.id]: false }));
                   setPlaybookStartedAt((prev) => ({ ...prev, [session.id]: null }));
-                } else {
-                  setPlaybookRunning((prev) => ({ ...prev, [session.id]: true }));
                 }
               }}
               onPlaybookStopped={() => {
                 setPlaybookRunning((prev) => ({ ...prev, [session.id]: false }));
                 setPlaybookStartedAt((prev) => ({ ...prev, [session.id]: null }));
+                setPlaybookPending((prev) => ({ ...prev, [session.id]: undefined }));
               }}
               onSendMessage={(sendFn) => {
                 sendPlaybookMessageRef.current[session.id] = sendFn;

@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
 
 import {
   startPlaybook,
@@ -7,26 +7,32 @@ import {
   stopAllPlaybooks,
 } from '../src/playbook-manager.js';
 
-describe('playbook-manager', () => {
-  afterEach(async () => {
+describe.concurrent('playbook-manager', () => {
+  // Safety net in case a test throws before its finally block runs.
+  afterAll(async () => {
     await stopAllPlaybooks();
   });
 
   it('starts a playbook and collects output', async () => {
-    const logs: { source: string; text: string }[] = [];
-    await startPlaybook(
-      'session-1',
-      {
-        name: 'Test',
-        commands: [{ label: 'Echo', command: 'echo hello' }],
-      },
-      '/tmp',
-      (output) => logs.push(output),
-      () => {},
-    );
-    // Wait for command to finish
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    expect(logs.some((l) => l.text.includes('hello'))).toBe(true);
+    const sessionId = 'session-1';
+    try {
+      const logs: { source: string; text: string }[] = [];
+      await startPlaybook(
+        sessionId,
+        {
+          name: 'Test',
+          commands: [{ label: 'Echo', command: 'echo hello' }],
+        },
+        '/tmp',
+        (output) => logs.push(output),
+        () => {},
+      );
+      // Wait for command to finish
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      expect(logs.some((l) => l.text.includes('hello'))).toBe(true);
+    } finally {
+      await stopPlaybook(sessionId);
+    }
   });
 
   it('getPlaybookState returns null for unknown session', () => {
@@ -34,45 +40,94 @@ describe('playbook-manager', () => {
   });
 
   it('stopPlaybook stops running commands', async () => {
-    await startPlaybook(
-      'session-2',
-      {
-        name: 'Long',
-        commands: [{ label: 'Sleep', command: 'sleep 60' }],
-      },
-      '/tmp',
-      () => {},
-      () => {},
-    );
-    const state = getPlaybookState('session-2');
-    expect(state).not.toBeNull();
-    expect(state!.commands[0].status).toBe('running');
-    await stopPlaybook('session-2');
-    expect(getPlaybookState('session-2')).toBeNull();
+    const sessionId = 'session-2';
+    try {
+      await startPlaybook(
+        sessionId,
+        {
+          name: 'Long',
+          commands: [{ label: 'Sleep', command: 'sleep 60' }],
+        },
+        '/tmp',
+        () => {},
+        () => {},
+      );
+      const state = getPlaybookState(sessionId);
+      expect(state).not.toBeNull();
+      expect(state!.commands[0].status).toBe('running');
+      await stopPlaybook(sessionId);
+      expect(getPlaybookState(sessionId)).toBeNull();
+    } finally {
+      await stopPlaybook(sessionId);
+    }
   });
 
   it('starting a new playbook stops the previous one', async () => {
-    await startPlaybook(
-      'session-3',
-      {
-        name: 'First',
-        commands: [{ label: 'Sleep', command: 'sleep 60' }],
-      },
-      '/tmp',
-      () => {},
-      () => {},
-    );
-    await startPlaybook(
-      'session-3',
-      {
-        name: 'Second',
-        commands: [{ label: 'Echo', command: 'echo replaced' }],
-      },
-      '/tmp',
-      () => {},
-      () => {},
-    );
-    const state = getPlaybookState('session-3');
-    expect(state?.name).toBe('Second');
+    const sessionId = 'session-3';
+    try {
+      await startPlaybook(
+        sessionId,
+        {
+          name: 'First',
+          commands: [{ label: 'Sleep', command: 'sleep 60' }],
+        },
+        '/tmp',
+        () => {},
+        () => {},
+      );
+      await startPlaybook(
+        sessionId,
+        {
+          name: 'Second',
+          commands: [{ label: 'Echo', command: 'echo replaced' }],
+        },
+        '/tmp',
+        () => {},
+        () => {},
+      );
+      const state = getPlaybookState(sessionId);
+      expect(state?.name).toBe('Second');
+    } finally {
+      await stopPlaybook(sessionId);
+    }
+  });
+
+  it('stop followed by a quick start does not clobber the new run', async () => {
+    // Regression: the old run's result-rejection used to delete the map entry
+    // unconditionally, wiping out the new run that had just replaced it —
+    // leaving the new run's processes orphaned with no way to stop them.
+    const sessionId = 'session-4';
+    try {
+      await startPlaybook(
+        sessionId,
+        {
+          name: 'First',
+          commands: [{ label: 'Sleep', command: 'sleep 60' }],
+        },
+        '/tmp',
+        () => {},
+        () => {},
+      );
+      // Fire stop without awaiting, then immediately start — mirrors the WS
+      // handler's fire-and-forget pattern when a user clicks stop→start quickly.
+      const stopping = stopPlaybook(sessionId);
+      await startPlaybook(
+        sessionId,
+        {
+          name: 'Second',
+          commands: [{ label: 'Echo', command: 'echo replaced' }],
+        },
+        '/tmp',
+        () => {},
+        () => {},
+      );
+      await stopping;
+      // Let the old run's result.catch microtask drain.
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      const state = getPlaybookState(sessionId);
+      expect(state?.name).toBe('Second');
+    } finally {
+      await stopPlaybook(sessionId);
+    }
   });
 });

@@ -1,6 +1,6 @@
 import { Writable } from 'node:stream';
 
-import { concurrently } from 'concurrently';
+import { concurrently, Command } from 'concurrently';
 
 import type { PlaybookConfig } from './config.js';
 
@@ -12,6 +12,9 @@ const devNull = new Writable({
 });
 
 const LOG_BUFFER_LIMIT = 100 * 1024; // 100KB
+
+// Cap per-command kill wait so a stuck child can't hang stopPlaybook forever.
+const KILL_TIMEOUT_MS = 5000;
 
 export interface LogEntry {
   source: string;
@@ -38,7 +41,9 @@ interface RunningPlaybook {
   commands: CommandStatus[];
   logs: LogEntry[];
   logSize: number;
-  kill: () => void;
+  kill: () => Promise<void>;
+  // Set once kill has started so concurrent stop/start calls share a single wait.
+  killPromise?: Promise<void>;
 }
 
 const runningPlaybooks = new Map<string, RunningPlaybook>();
@@ -50,7 +55,9 @@ export async function startPlaybook(
   onOutput: (entry: { source: string; text: string }) => void,
   onStatusChange: (commands: CommandStatus[], startedAt: number) => void,
 ): Promise<void> {
-  // Stop any existing playbook for this session
+  // Wait for any previous playbook's children to actually die before spawning
+  // new ones — otherwise the old taskkill is still in flight while the new
+  // processes try to bind the same ports and we end up with ghosts.
   await stopPlaybook(sessionId);
 
   const commandStatuses: CommandStatus[] = playbook.commands.map((cmd) => ({
@@ -64,7 +71,7 @@ export async function startPlaybook(
     commands: commandStatuses,
     logs: [],
     logSize: 0,
-    kill: () => {},
+    kill: async () => {},
   };
   runningPlaybooks.set(sessionId, state);
 
@@ -81,9 +88,27 @@ export async function startPlaybook(
   );
 
   state.kill = () => {
+    const closePromises: Promise<void>[] = [];
     for (const cmd of commands) {
-      cmd.kill('SIGTERM');
+      // Already exited (no pid/process) — nothing to wait for.
+      if (!Command.canKill(cmd)) continue;
+      closePromises.push(
+        new Promise<void>((resolve) => {
+          const sub = cmd.close.subscribe(() => {
+            sub.unsubscribe();
+            resolve();
+          });
+          // Safety net: if the close event never arrives, don't hang forever.
+          const timer = setTimeout(() => {
+            sub.unsubscribe();
+            resolve();
+          }, KILL_TIMEOUT_MS);
+          sub.add(() => clearTimeout(timer));
+          cmd.kill('SIGTERM');
+        }),
+      );
     }
+    return Promise.all(closePromises).then(() => {});
   };
 
   // Subscribe to per-command output
@@ -112,14 +137,17 @@ export async function startPlaybook(
 
   onStatusChange([...commandStatuses], state.startedAt);
 
-  // Clean up when all commands finish
+  // Clean up when all commands finish. Guard the delete with an identity
+  // check — by the time this fires, a newer playbook may own the map entry
+  // (user hit stop → start quickly), and we must not clobber it.
   result
     .then(() => {
-      // All exited successfully -- keep state for log viewing (but mark as not running)
+      // All exited successfully — keep state for log viewing.
     })
     .catch(() => {
-      // At least one errored -- killOthersOn handled the rest
-      runningPlaybooks.delete(sessionId);
+      if (runningPlaybooks.get(sessionId) === state) {
+        runningPlaybooks.delete(sessionId);
+      }
     });
 }
 
@@ -149,10 +177,16 @@ export function getPlaybookState(sessionId: string): PlaybookState | null {
 export async function stopPlaybook(sessionId: string): Promise<void> {
   const running = runningPlaybooks.get(sessionId);
   if (!running) return;
-  running.kill();
-  runningPlaybooks.delete(sessionId);
-  // Give processes a moment to exit
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  // Dedupe concurrent stop calls: reuse the in-flight kill instead of firing
+  // tree-kill twice. The map entry stays until the kill resolves, so a
+  // racing startPlaybook's `await stopPlaybook` blocks on the same promise.
+  if (!running.killPromise) {
+    running.killPromise = running.kill();
+  }
+  await running.killPromise;
+  if (runningPlaybooks.get(sessionId) === running) {
+    runningPlaybooks.delete(sessionId);
+  }
 }
 
 export async function stopAllPlaybooks(): Promise<void> {

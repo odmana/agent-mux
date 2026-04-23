@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } fr
 
 import { uiColors } from '../terminal-config';
 import type { PlaybookCommandStatus, PlaybookLogEntry } from '../types';
-import PlaybookToggleButton from './PlaybookToggleButton';
+import PlaybookToggleButton, { type PlaybookPending } from './PlaybookToggleButton';
 import ScrollArea from './ScrollArea';
 
 function formatElapsed(ms: number): string {
@@ -39,6 +39,7 @@ interface PlaybookViewProps {
   commands: PlaybookCommandStatus[];
   logs: PlaybookLogEntry[];
   isRunning: boolean;
+  pending?: PlaybookPending;
   startedAt: number | null;
   onStart: () => void;
   onStop: () => void;
@@ -50,6 +51,7 @@ export default function PlaybookView({
   commands,
   logs,
   isRunning,
+  pending,
   startedAt,
   onStart,
   onStop,
@@ -171,8 +173,40 @@ export default function PlaybookView({
           </span>
         </button>
 
-        {/* Status pill (running) */}
-        {isRunning && (
+        {/* Status pill */}
+        {pending === 'starting' && (
+          <div
+            className="flex h-7 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-medium"
+            style={{
+              borderColor: uiColors.successBorder,
+              backgroundColor: uiColors.successBg,
+              color: uiColors.success,
+            }}
+          >
+            <span
+              className="inline-block h-1.5 w-1.5 animate-pulse rounded-full"
+              style={{ backgroundColor: uiColors.success }}
+            />
+            <span>{'Starting\u2026'}</span>
+          </div>
+        )}
+        {pending === 'stopping' && (
+          <div
+            className="flex h-7 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-medium"
+            style={{
+              borderColor: uiColors.dangerBorder,
+              backgroundColor: uiColors.dangerBg,
+              color: uiColors.dangerText,
+            }}
+          >
+            <span
+              className="inline-block h-1.5 w-1.5 animate-pulse rounded-full"
+              style={{ backgroundColor: uiColors.dangerText }}
+            />
+            <span>{'Stopping\u2026'}</span>
+          </div>
+        )}
+        {isRunning && pending === undefined && (
           <div
             className="flex h-7 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-medium"
             style={{
@@ -273,6 +307,7 @@ export default function PlaybookView({
         {/* Start / Stop button \u2014 always visible */}
         <PlaybookToggleButton
           isRunning={isRunning}
+          pending={pending}
           onStart={onStart}
           onStop={onStop}
           className="h-8 w-8 shrink-0"
