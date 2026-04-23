@@ -6,7 +6,7 @@
 
 A terminal multiplexer for managing multiple AI agent sessions. Provides a sidebar with session tabs and a full terminal pane powered by xterm.js. Purpose-built for running concurrent Claude Code sessions across different projects. Runs as a standalone Electron desktop app or in the browser.
 
-![Agent Mux](docs/screenshot.png)
+![Primary Terminal](docs/screenshots/primary.png) ![Playbook](docs/screenshots/playbook.png)
 
 ## Prerequisites
 
