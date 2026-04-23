@@ -65,6 +65,7 @@ export default function App() {
     {},
   );
   const [playbookRunning, setPlaybookRunning] = useState<Record<string, boolean>>({});
+  const [playbookStartedAt, setPlaybookStartedAt] = useState<Record<string, number | null>>({});
   const [showPlaybookSelector, setShowPlaybookSelector] = useState(false);
   const sendPlaybookMessageRef = useRef<Record<string, (msg: object) => void>>({});
   const showPlaybookRef = useRef(showPlaybook);
@@ -149,10 +150,12 @@ export default function App() {
   const handlePlaybookStart = useCallback((sessionId: string) => {
     setPlaybookLogs((prev) => ({ ...prev, [sessionId]: [] }));
     setPlaybookRunning((prev) => ({ ...prev, [sessionId]: true }));
+    setPlaybookStartedAt((prev) => ({ ...prev, [sessionId]: null }));
   }, []);
 
   const handlePlaybookStop = useCallback((sessionId: string) => {
     setPlaybookRunning((prev) => ({ ...prev, [sessionId]: false }));
+    setPlaybookStartedAt((prev) => ({ ...prev, [sessionId]: null }));
   }, []);
 
   const handleReorderSessions = useCallback((reordered: Session[]) => {
@@ -542,6 +545,7 @@ export default function App() {
               playbookCommands={playbookStatuses[session.id]}
               playbookLogs={playbookLogs[session.id]}
               playbookRunning={playbookRunning[session.id]}
+              playbookStartedAt={playbookStartedAt[session.id]}
               onPlaybookStart={() => handlePlaybookStart(session.id)}
               onPlaybookStop={() => handlePlaybookStop(session.id)}
               onChangePlaybook={() => setShowPlaybookSelector(true)}
@@ -551,15 +555,22 @@ export default function App() {
                   [session.id]: appendPlaybookLog(prev[session.id], entry),
                 }));
               }}
-              onPlaybookStatusChange={(commands) => {
+              onPlaybookStatusChange={(commands, startedAt) => {
                 setPlaybookStatuses((prev) => ({ ...prev, [session.id]: commands }));
+                if (startedAt !== null) {
+                  setPlaybookStartedAt((prev) => ({ ...prev, [session.id]: startedAt }));
+                }
                 const allDone = commands.every((c) => c.status !== 'running');
                 if (allDone) {
                   setPlaybookRunning((prev) => ({ ...prev, [session.id]: false }));
+                  setPlaybookStartedAt((prev) => ({ ...prev, [session.id]: null }));
+                } else {
+                  setPlaybookRunning((prev) => ({ ...prev, [session.id]: true }));
                 }
               }}
               onPlaybookStopped={() => {
                 setPlaybookRunning((prev) => ({ ...prev, [session.id]: false }));
+                setPlaybookStartedAt((prev) => ({ ...prev, [session.id]: null }));
               }}
               onSendMessage={(sendFn) => {
                 sendPlaybookMessageRef.current[session.id] = sendFn;

@@ -179,9 +179,9 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
                   );
                 }
               },
-              (commands) => {
+              (commands, startedAt) => {
                 if (ws.readyState === WebSocket.OPEN) {
-                  ws.send(JSON.stringify({ type: 'playbook:status', commands }));
+                  ws.send(JSON.stringify({ type: 'playbook:status', commands, startedAt }));
                 }
               },
             );
@@ -210,7 +210,13 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
                   JSON.stringify({ type: 'playbook:output', source: log.source, text: log.text }),
                 );
               }
-              ws.send(JSON.stringify({ type: 'playbook:status', commands: state.commands }));
+              ws.send(
+                JSON.stringify({
+                  type: 'playbook:status',
+                  commands: state.commands,
+                  startedAt: state.startedAt,
+                }),
+              );
             }
             return;
           }

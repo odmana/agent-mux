@@ -24,7 +24,7 @@ export function useSession(
   onNotification?: (sessionId: string, state: NotificationState) => void,
   onBranchUpdate?: (sessionId: string, branch: string) => void,
   onPlaybookOutput?: (entry: PlaybookLogEntry) => void,
-  onPlaybookStatus?: (commands: PlaybookCommandStatus[]) => void,
+  onPlaybookStatus?: (commands: PlaybookCommandStatus[], startedAt: number | null) => void,
   onPlaybookStopped?: () => void,
 ): UseSessionResult {
   const terminalRef = useRef<Terminal | null>(null);
@@ -80,7 +80,8 @@ export function useSession(
               return;
             }
             if (msg.type === 'playbook:status') {
-              onPlaybookStatusRef.current?.(msg.commands);
+              const startedAt = typeof msg.startedAt === 'number' ? msg.startedAt : null;
+              onPlaybookStatusRef.current?.(msg.commands, startedAt);
               return;
             }
             if (msg.type === 'playbook:stopped') {

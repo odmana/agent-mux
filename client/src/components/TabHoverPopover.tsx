@@ -1,9 +1,10 @@
-import { Play, Square, SquareChevronRight } from 'lucide-react';
+import { SquareChevronRight } from 'lucide-react';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { uiColors } from '../terminal-config';
 import type { Session } from '../types';
+import PlaybookToggleButton from './PlaybookToggleButton';
 
 const SHOW_DELAY_MS = 400;
 const HIDE_DELAY_MS = 250;
@@ -235,20 +236,12 @@ const TabHoverPopover = forwardRef<TabHoverPopoverHandle, TabHoverPopoverProps>(
               Playbook
             </button>
             {session.playbook && (
-              <button
-                onClick={() => (isPlaybookRunning ? onStop(session.id) : onStart(session.id))}
-                aria-label={isPlaybookRunning ? 'Stop playbook' : 'Start playbook'}
-                className="flex shrink-0 items-center justify-center rounded-md px-2 transition-colors"
-                style={{
-                  background: isPlaybookRunning ? uiColors.dangerBg : uiColors.successBg,
-                  color: isPlaybookRunning ? uiColors.dangerText : uiColors.success,
-                  border: `1px solid ${
-                    isPlaybookRunning ? uiColors.dangerBorder : uiColors.successBorder
-                  }`,
-                }}
-              >
-                {isPlaybookRunning ? <Square size={12} /> : <Play size={12} />}
-              </button>
+              <PlaybookToggleButton
+                isRunning={isPlaybookRunning}
+                onStart={() => onStart(session.id)}
+                onStop={() => onStop(session.id)}
+                className="shrink-0 px-2"
+              />
             )}
           </div>
 

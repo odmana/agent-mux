@@ -27,12 +27,14 @@ export interface CommandStatus {
 
 export interface PlaybookState {
   name: string;
+  startedAt: number;
   commands: CommandStatus[];
   logs: LogEntry[];
 }
 
 interface RunningPlaybook {
   name: string;
+  startedAt: number;
   commands: CommandStatus[];
   logs: LogEntry[];
   logSize: number;
@@ -46,7 +48,7 @@ export async function startPlaybook(
   playbook: PlaybookConfig,
   cwd: string,
   onOutput: (entry: { source: string; text: string }) => void,
-  onStatusChange: (commands: CommandStatus[]) => void,
+  onStatusChange: (commands: CommandStatus[], startedAt: number) => void,
 ): Promise<void> {
   // Stop any existing playbook for this session
   await stopPlaybook(sessionId);
@@ -58,6 +60,7 @@ export async function startPlaybook(
 
   const state: RunningPlaybook = {
     name: playbook.name,
+    startedAt: Date.now(),
     commands: commandStatuses,
     logs: [],
     logSize: 0,
@@ -103,11 +106,11 @@ export async function startPlaybook(
       const exitCode = typeof event.exitCode === 'number' ? event.exitCode : Number(event.exitCode);
       commandStatuses[i].exitCode = exitCode;
       commandStatuses[i].status = exitCode === 0 ? 'exited' : 'errored';
-      onStatusChange([...commandStatuses]);
+      onStatusChange([...commandStatuses], state.startedAt);
     });
   }
 
-  onStatusChange([...commandStatuses]);
+  onStatusChange([...commandStatuses], state.startedAt);
 
   // Clean up when all commands finish
   result
@@ -137,6 +140,7 @@ export function getPlaybookState(sessionId: string): PlaybookState | null {
   if (!running) return null;
   return {
     name: running.name,
+    startedAt: running.startedAt,
     commands: [...running.commands],
     logs: [...running.logs],
   };

@@ -16,11 +16,12 @@ interface TerminalPaneProps {
   playbookCommands?: PlaybookCommandStatus[];
   playbookLogs?: PlaybookLogEntry[];
   playbookRunning?: boolean;
+  playbookStartedAt?: number | null;
   onPlaybookStart?: () => void;
   onPlaybookStop?: () => void;
   onChangePlaybook?: () => void;
   onPlaybookOutput?: (entry: PlaybookLogEntry) => void;
-  onPlaybookStatusChange?: (commands: PlaybookCommandStatus[]) => void;
+  onPlaybookStatusChange?: (commands: PlaybookCommandStatus[], startedAt: number | null) => void;
   onPlaybookStopped?: () => void;
   onSendMessage?: (sendFn: (msg: object) => void) => void;
   onNotification?: (sessionId: string, state: NotificationState) => void;
@@ -38,6 +39,7 @@ export default function TerminalPane({
   playbookCommands,
   playbookLogs,
   playbookRunning,
+  playbookStartedAt,
   onPlaybookStart,
   onPlaybookStop,
   onChangePlaybook,
@@ -121,6 +123,7 @@ export default function TerminalPane({
             commands={playbookCommands ?? []}
             logs={playbookLogs ?? []}
             isRunning={playbookRunning ?? false}
+            startedAt={playbookStartedAt ?? null}
             onStart={() => {
               sendMessage({ type: 'playbook:start', playbookName });
               onPlaybookStart?.();

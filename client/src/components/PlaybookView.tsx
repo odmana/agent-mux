@@ -1,10 +1,20 @@
 import AnsiToHtml from 'ansi-to-html';
-import { Pencil, Play, Square, SquareChevronRight } from 'lucide-react';
+import { SquareChevronRight } from 'lucide-react';
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 
 import { uiColors } from '../terminal-config';
 import type { PlaybookCommandStatus, PlaybookLogEntry } from '../types';
+import PlaybookToggleButton from './PlaybookToggleButton';
 import ScrollArea from './ScrollArea';
+
+function formatElapsed(ms: number): string {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`;
+  return `${m}m ${String(s).padStart(2, '0')}s`;
+}
 
 const ansiConverter = new AnsiToHtml({
   fg: '#d8dee9',
@@ -29,6 +39,7 @@ interface PlaybookViewProps {
   commands: PlaybookCommandStatus[];
   logs: PlaybookLogEntry[];
   isRunning: boolean;
+  startedAt: number | null;
   onStart: () => void;
   onStop: () => void;
   onChangePlaybook: () => void;
@@ -39,6 +50,7 @@ export default function PlaybookView({
   commands,
   logs,
   isRunning,
+  startedAt,
   onStart,
   onStop,
   onChangePlaybook,
@@ -46,8 +58,18 @@ export default function PlaybookView({
   const [activeFilters, setActiveFilters] = useState<Set<string>>(
     () => new Set(commands.map((c) => c.label)),
   );
+  const [, forceTick] = useState(0);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
+
+  // Keep a 1s interval alive whenever the playbook is running so elapsed time
+  // stays fresh. We read `Date.now()` directly at render; the tick just forces
+  // the component to re-render.
+  useEffect(() => {
+    if (startedAt === null) return;
+    const id = window.setInterval(() => forceTick((t) => t + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [startedAt]);
   // Swallow the scroll event that our own programmatic scroll generates —
   // otherwise a burst of new logs (common on Windows where child stdout arrives
   // in large chunks) can race the async scroll event and read stale scrollTop
@@ -92,16 +114,8 @@ export default function PlaybookView({
     setShowJumpToTail(false);
   }, []);
 
-  const toggleFilter = (label: string) => {
-    setActiveFilters((prev) => {
-      const next = new Set(prev);
-      if (next.has(label)) {
-        next.delete(label);
-      } else {
-        next.add(label);
-      }
-      return next;
-    });
+  const selectOnlyFilter = (label: string) => {
+    setActiveFilters(new Set([label]));
   };
 
   const labelColorMap = new Map<string, string>();
@@ -110,6 +124,9 @@ export default function PlaybookView({
   });
 
   const filteredLogs = logs.filter((log) => activeFilters.has(log.source));
+  const allFiltersActive = commands.length > 0 && activeFilters.size === commands.length;
+  const setAllFilters = () => setActiveFilters(new Set(commands.map((c) => c.label)));
+  const elapsedMs = startedAt === null ? 0 : Date.now() - startedAt;
 
   return (
     <div className="relative flex h-full flex-col" style={{ backgroundColor: uiColors.pageBg }}>
@@ -118,59 +135,148 @@ export default function PlaybookView({
         className="flex items-center gap-3 border-b px-4 py-2.5"
         style={{ borderColor: uiColors.sidebarBorder }}
       >
+        {/* Playbook card \u2014 clicking opens the selector */}
         <button
+          type="button"
           onClick={onChangePlaybook}
           title="Change playbook"
-          className="flex h-8 min-w-0 flex-1 items-center gap-1.5 rounded-lg border px-3 text-left text-sm transition-colors hover:border-white/30 hover:bg-white/5"
+          className="flex h-11 shrink-0 items-center gap-2.5 rounded-lg border px-3 text-left transition-colors"
           style={{
-            borderColor: 'rgba(255,255,255,0.15)',
-            color: uiColors.textPrimary,
+            backgroundColor: uiColors.sidebarBg,
+            borderColor: uiColors.sidebarBorder,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = uiColors.hoverBg;
+            e.currentTarget.style.borderColor = uiColors.activeBorder;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = uiColors.sidebarBg;
+            e.currentTarget.style.borderColor = uiColors.sidebarBorder;
           }}
         >
-          <SquareChevronRight size={14} className="shrink-0 opacity-70" />
-          <span className="min-w-0 flex-1 truncate">{playbookName}</span>
-          <Pencil size={12} className="shrink-0 opacity-50" />
-        </button>
-        <button
-          onClick={isRunning ? onStop : onStart}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors"
-          style={{
-            backgroundColor: isRunning ? uiColors.dangerBg : uiColors.successBg,
-            color: isRunning ? uiColors.dangerText : uiColors.success,
-          }}
-        >
-          {isRunning ? <Square size={16} /> : <Play size={16} />}
-        </button>
-      </div>
-
-      {/* Filter toggles */}
-      <div
-        className="flex gap-2 border-b px-4 py-2"
-        style={{ borderColor: uiColors.sidebarBorder }}
-      >
-        {commands.map((cmd) => {
-          const active = activeFilters.has(cmd.label);
-          const color = labelColorMap.get(cmd.label) ?? uiColors.accent;
-          return (
-            <button
-              key={cmd.label}
-              onClick={() => toggleFilter(cmd.label)}
-              className="rounded-md border px-2 py-0.5 text-xs transition-colors"
-              style={{
-                borderColor: active ? color : 'rgba(255,255,255,0.1)',
-                color: active ? color : uiColors.textDim,
-                backgroundColor: active ? `${color}15` : 'transparent',
-              }}
+          <SquareChevronRight size={20} className="shrink-0" style={{ color: uiColors.success }} />
+          <span className="flex min-w-0 flex-col leading-tight">
+            <span
+              className="text-[10px] tracking-[0.12em] uppercase"
+              style={{ color: uiColors.textMuted }}
             >
-              {cmd.label}
-              {cmd.status !== 'running' && (
-                <span className="ml-1 opacity-50">
-                  {cmd.status === 'exited' ? '\u2713' : '\u2717'}
-                </span>
-              )}
-            </button>
-          );
-        })}
+              Playbook
+            </span>
+            <span
+              className="max-w-[240px] truncate text-sm font-medium"
+              style={{ color: uiColors.textPrimary }}
+            >
+              {playbookName}
+            </span>
+          </span>
+        </button>
+
+        {/* Status pill (running) */}
+        {isRunning && (
+          <div
+            className="flex h-7 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-medium"
+            style={{
+              borderColor: uiColors.successBorder,
+              backgroundColor: uiColors.successBg,
+              color: uiColors.success,
+            }}
+          >
+            <span
+              className="inline-block h-1.5 w-1.5 animate-pulse rounded-full"
+              style={{ backgroundColor: uiColors.success }}
+            />
+            <span>{`Running \u00b7 ${formatElapsed(elapsedMs)}`}</span>
+          </div>
+        )}
+
+        {/* Spacer */}
+        <div className="min-w-0 flex-1" />
+
+        {/* Filter chips */}
+        {commands.length > 0 && (
+          <div
+            className="flex shrink-0 items-center gap-0.5 rounded-full border p-0.5"
+            style={{
+              backgroundColor: uiColors.sidebarBg,
+              borderColor: uiColors.sidebarBorder,
+            }}
+          >
+            {commands.map((cmd) => {
+              const inActiveSet = activeFilters.has(cmd.label);
+              const selected = inActiveSet && !allFiltersActive;
+              const color = labelColorMap.get(cmd.label) ?? uiColors.accent;
+              const baseBg = selected ? uiColors.pageBg : 'transparent';
+              return (
+                <button
+                  key={cmd.label}
+                  type="button"
+                  onClick={() => selectOnlyFilter(cmd.label)}
+                  className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors"
+                  style={{
+                    backgroundColor: baseBg,
+                    color: selected ? uiColors.textPrimary : uiColors.textMuted,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!selected) e.currentTarget.style.backgroundColor = uiColors.hoverBg;
+                    e.currentTarget.style.color = uiColors.textPrimary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = baseBg;
+                    e.currentTarget.style.color = selected
+                      ? uiColors.textPrimary
+                      : uiColors.textMuted;
+                  }}
+                >
+                  <span
+                    className="inline-block h-1.5 w-1.5 rounded-full"
+                    style={{ backgroundColor: color, opacity: inActiveSet ? 1 : 0.5 }}
+                  />
+                  {cmd.label}
+                  {cmd.status === 'exited' && (
+                    <span style={{ color: uiColors.success }}>{'✓'}</span>
+                  )}
+                  {cmd.status === 'errored' && (
+                    <span style={{ color: uiColors.dangerText }}>{'✗'}</span>
+                  )}
+                </button>
+              );
+            })}
+            {(() => {
+              const allBaseBg = allFiltersActive ? uiColors.pageBg : 'transparent';
+              return (
+                <button
+                  type="button"
+                  onClick={setAllFilters}
+                  className="rounded-full px-2.5 py-1 text-xs transition-colors"
+                  style={{
+                    backgroundColor: allBaseBg,
+                    color: allFiltersActive ? uiColors.textPrimary : uiColors.textMuted,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!allFiltersActive) e.currentTarget.style.backgroundColor = uiColors.hoverBg;
+                    e.currentTarget.style.color = uiColors.textPrimary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = allBaseBg;
+                    e.currentTarget.style.color = allFiltersActive
+                      ? uiColors.textPrimary
+                      : uiColors.textMuted;
+                  }}
+                >
+                  All
+                </button>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* Start / Stop button \u2014 always visible */}
+        <PlaybookToggleButton
+          isRunning={isRunning}
+          onStart={onStart}
+          onStop={onStop}
+          className="h-8 w-8 shrink-0"
+        />
       </div>
 
       {/* Log stream */}
