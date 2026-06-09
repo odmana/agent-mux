@@ -266,6 +266,11 @@ export default function PlaybookView({
                     style={{ backgroundColor: color, opacity: inActiveSet ? 1 : 0.5 }}
                   />
                   {cmd.label}
+                  {cmd.status === 'pending' && (
+                    <span style={{ color: uiColors.textMuted }} title="Waiting on dependencies">
+                      {'⋯'}
+                    </span>
+                  )}
                   {cmd.status === 'exited' && (
                     <span style={{ color: uiColors.success }}>{'✓'}</span>
                   )}

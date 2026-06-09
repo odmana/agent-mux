@@ -5,6 +5,7 @@ export type DisconnectReason = 'network' | 'pty_exited';
 export interface PlaybookCommand {
   label: string;
   command: string;
+  dependsOn?: string[];
 }
 
 export interface PlaybookConfig {
@@ -14,7 +15,7 @@ export interface PlaybookConfig {
 
 export interface PlaybookCommandStatus {
   label: string;
-  status: 'running' | 'exited' | 'errored';
+  status: 'pending' | 'running' | 'exited' | 'errored';
   exitCode?: number;
 }
 

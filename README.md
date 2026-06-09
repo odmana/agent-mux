@@ -96,15 +96,16 @@ Playbooks let you run multiple commands in parallel within a tab -- for example,
     {
       "name": "Full Stack Dev",
       "commands": [
-        { "label": "API", "command": "cd api && npm run dev" },
-        { "label": "Client", "command": "cd client && npm run dev" }
+        { "label": "Migrate", "command": "npm run db:migrate" },
+        { "label": "API", "command": "cd api && npm run dev", "dependsOn": ["Migrate"] },
+        { "label": "Client", "command": "cd client && npm run dev", "dependsOn": ["Migrate"] }
       ]
     }
   ]
 }
 ```
 
-Each playbook has a `name` and a list of `commands` with a `label` (shown in the UI) and a `command` (run from the session's working directory).
+Each playbook has a `name` and a list of `commands` with a `label` (shown in the UI) and a `command` (run from the session's working directory). A command may also declare `dependsOn`: a list of other command labels that must **exit successfully** before it starts -- until then it stays _pending_ (shown with a `⋯` in the command filter). Use it to run one-shot setup steps (migrations, codegen, installs) before the long-running servers that need them, as with `Migrate` above. Dependencies must reference existing labels and form an acyclic graph (invalid configs fall back to defaults), and since a dependency clears on **exit**, don't depend on a command that never exits (e.g. a server).
 
 ### Usage
 
@@ -156,7 +157,7 @@ agent-mux/
 │       ├── sessions.ts            # Session state (PTY, scrollback, git branch)
 │       ├── state.ts               # Persisted app state (session list, sidebar width, playbooks)
 │       ├── routes.ts              # REST API endpoints
-│       ├── playbook-manager.ts    # Parallel command execution via concurrently
+│       ├── playbook-manager.ts    # Dependency-gated command execution via concurrently
 │       ├── pty-manager.ts         # node-pty wrapper
 │       ├── hooks-setup.ts         # Hook detection and auto-installation
 │       └── notification-watcher.ts # Polls /tmp for hook state files

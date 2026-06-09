@@ -9,12 +9,49 @@ const PortSchema = v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(655
 const PlaybookCommandSchema = v.object({
   label: v.pipe(v.string(), v.minLength(1)),
   command: v.pipe(v.string(), v.minLength(1)),
+  dependsOn: v.optional(v.array(v.pipe(v.string(), v.minLength(1)))),
 });
 
-const PlaybookSchema = v.object({
-  name: v.pipe(v.string(), v.minLength(1)),
-  commands: v.pipe(v.array(PlaybookCommandSchema), v.minLength(1)),
-});
+/**
+ * A playbook's dependsOn graph is valid when every referenced label exists and
+ * the graph is acyclic. The cycle check also rejects a command depending on
+ * itself (a length-1 cycle), so the orchestrator can always make progress.
+ */
+function playbookDepsValid(
+  commands: readonly v.InferOutput<typeof PlaybookCommandSchema>[],
+): boolean {
+  const byLabel = new Map(commands.map((c) => [c.label, c]));
+  for (const cmd of commands) {
+    for (const dep of cmd.dependsOn ?? []) {
+      if (!byLabel.has(dep)) return false;
+    }
+  }
+
+  const state = new Map<string, 'visiting' | 'done'>();
+  const hasCycle = (label: string): boolean => {
+    const seen = state.get(label);
+    if (seen === 'visiting') return true;
+    if (seen === 'done') return false;
+    state.set(label, 'visiting');
+    for (const dep of byLabel.get(label)?.dependsOn ?? []) {
+      if (hasCycle(dep)) return true;
+    }
+    state.set(label, 'done');
+    return false;
+  };
+  return !commands.some((c) => hasCycle(c.label));
+}
+
+const PlaybookSchema = v.pipe(
+  v.object({
+    name: v.pipe(v.string(), v.minLength(1)),
+    commands: v.pipe(v.array(PlaybookCommandSchema), v.minLength(1)),
+  }),
+  v.check(
+    (pb) => playbookDepsValid(pb.commands),
+    'playbook commands have invalid dependsOn (unknown label or cycle)',
+  ),
+);
 
 export const ConfigSchema = v.object({
   shell: v.optional(v.pipe(v.string(), v.minLength(1))),

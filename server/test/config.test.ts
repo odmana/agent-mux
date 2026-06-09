@@ -149,6 +149,60 @@ describe('ConfigSchema', () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it('accepts a command that dependsOn an existing command label', () => {
+    const result = v.safeParse(ConfigSchema, {
+      playbooks: [
+        {
+          name: 'Dev',
+          commands: [
+            { label: 'Migrate', command: 'npm run migrate' },
+            { label: 'API', command: 'npm run api', dependsOn: ['Migrate'] },
+          ],
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects dependsOn referencing an unknown command label', () => {
+    const result = v.safeParse(ConfigSchema, {
+      playbooks: [
+        {
+          name: 'Dev',
+          commands: [{ label: 'API', command: 'npm run api', dependsOn: ['Nope'] }],
+        },
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a command that dependsOn itself', () => {
+    const result = v.safeParse(ConfigSchema, {
+      playbooks: [
+        {
+          name: 'Dev',
+          commands: [{ label: 'API', command: 'npm run api', dependsOn: ['API'] }],
+        },
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a cyclic dependency graph', () => {
+    const result = v.safeParse(ConfigSchema, {
+      playbooks: [
+        {
+          name: 'Dev',
+          commands: [
+            { label: 'A', command: 'a', dependsOn: ['B'] },
+            { label: 'B', command: 'b', dependsOn: ['A'] },
+          ],
+        },
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe('watchConfig', () => {

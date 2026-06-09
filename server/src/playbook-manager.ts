@@ -24,7 +24,8 @@ export interface LogEntry {
 
 export interface CommandStatus {
   label: string;
-  status: 'running' | 'exited' | 'errored';
+  // 'pending' = waiting on a dependsOn command to exit successfully before it starts.
+  status: 'pending' | 'running' | 'exited' | 'errored';
   exitCode?: number;
 }
 
@@ -60,9 +61,12 @@ export async function startPlaybook(
   // processes try to bind the same ports and we end up with ghosts.
   await stopPlaybook(sessionId);
 
+  // Every command starts gated: a command with no dependencies clears its gate
+  // immediately (see the initial spawnReady() below); one with dependsOn waits
+  // until each named command has exited successfully.
   const commandStatuses: CommandStatus[] = playbook.commands.map((cmd) => ({
     label: cmd.label,
-    status: 'running',
+    status: 'pending',
   }));
 
   const state: RunningPlaybook = {
@@ -75,21 +79,21 @@ export async function startPlaybook(
   };
   runningPlaybooks.set(sessionId, state);
 
-  const { result, commands } = concurrently(
-    playbook.commands.map((cmd) => ({
-      command: cmd.command,
-      name: cmd.label,
-      prefixColor: '',
-      env: { FORCE_COLOR: '1' },
-      cwd,
-      raw: false,
-    })),
-    { killOthersOn: ['failure'], raw: true, outputStream: devNull },
-  );
+  // Spawned children, accumulated as gates open. We spawn each command through
+  // its own concurrently() call when its dependencies are satisfied, so we
+  // implement "kill everything on failure" ourselves rather than relying on a
+  // single call's killOthersOn.
+  const spawned: Command[] = [];
+  // Once set, no further commands spawn — used by both stop and failure paths.
+  let cancelled = false;
+  // label -> exited successfully (exit code 0). Drives dependent gates.
+  const succeeded = new Map<string, boolean>();
 
-  state.kill = () => {
+  const emit = (): void => onStatusChange([...commandStatuses], state.startedAt);
+
+  const killSpawned = (): Promise<void> => {
     const closePromises: Promise<void>[] = [];
-    for (const cmd of commands) {
+    for (const cmd of spawned) {
       // Already exited (no pid/process) — nothing to wait for.
       if (!Command.canKill(cmd)) continue;
       closePromises.push(
@@ -111,44 +115,93 @@ export async function startPlaybook(
     return Promise.all(closePromises).then(() => {});
   };
 
-  // Subscribe to per-command output
-  for (let i = 0; i < commands.length; i++) {
-    const label = playbook.commands[i].label;
+  state.kill = () => {
+    cancelled = true;
+    return killSpawned();
+  };
 
-    commands[i].stdout.subscribe((data) => {
-      const text = typeof data === 'string' ? data : data.toString();
-      addLog(state, label, text);
-      onOutput({ source: label, text });
-    });
-
-    commands[i].stderr.subscribe((data) => {
-      const text = typeof data === 'string' ? data : data.toString();
-      addLog(state, label, text);
-      onOutput({ source: label, text });
-    });
-
-    commands[i].close.subscribe((event) => {
-      const exitCode = typeof event.exitCode === 'number' ? event.exitCode : Number(event.exitCode);
-      commandStatuses[i].exitCode = exitCode;
-      commandStatuses[i].status = exitCode === 0 ? 'exited' : 'errored';
-      onStatusChange([...commandStatuses], state.startedAt);
-    });
-  }
-
-  onStatusChange([...commandStatuses], state.startedAt);
-
-  // Clean up when all commands finish. Guard the delete with an identity
-  // check — by the time this fires, a newer playbook may own the map entry
-  // (user hit stop → start quickly), and we must not clobber it.
-  result
-    .then(() => {
-      // All exited successfully — keep state for log viewing.
-    })
-    .catch(() => {
+  // A command failed — tear the whole playbook down (mirrors the old
+  // killOthersOn: ['failure']) and drop the map entry so a fresh start can
+  // take over. Guard the delete with an identity check: by the time the kill
+  // resolves, a newer playbook may already own this session's slot.
+  const failPlaybook = (): void => {
+    if (cancelled) return;
+    cancelled = true;
+    void killSpawned().then(() => {
       if (runningPlaybooks.get(sessionId) === state) {
         runningPlaybooks.delete(sessionId);
       }
     });
+  };
+
+  const spawnCommand = (index: number): void => {
+    const cmd = playbook.commands[index];
+    const label = cmd.label;
+    commandStatuses[index].status = 'running';
+
+    const { result, commands } = concurrently(
+      [
+        {
+          command: cmd.command,
+          name: label,
+          prefixColor: '',
+          env: { FORCE_COLOR: '1' },
+          cwd,
+          raw: false,
+        },
+      ],
+      { raw: true, outputStream: devNull },
+    );
+    // Swallow the per-command rejection (non-zero exit) — failure is handled via
+    // the close subscription below; an unhandled rejection would crash the process.
+    result.catch(() => {});
+
+    const child = commands[0];
+    spawned.push(child);
+
+    child.stdout.subscribe((data) => {
+      const text = typeof data === 'string' ? data : data.toString();
+      addLog(state, label, text);
+      onOutput({ source: label, text });
+    });
+
+    child.stderr.subscribe((data) => {
+      const text = typeof data === 'string' ? data : data.toString();
+      addLog(state, label, text);
+      onOutput({ source: label, text });
+    });
+
+    child.close.subscribe((event) => {
+      const exitCode = typeof event.exitCode === 'number' ? event.exitCode : Number(event.exitCode);
+      commandStatuses[index].exitCode = exitCode;
+      const ok = exitCode === 0;
+      commandStatuses[index].status = ok ? 'exited' : 'errored';
+      succeeded.set(label, ok);
+      emit();
+      if (!ok) {
+        failPlaybook();
+        return;
+      }
+      spawnReady();
+    });
+
+    emit();
+  };
+
+  // Spawn every still-pending command whose dependencies have all exited 0.
+  const spawnReady = (): void => {
+    if (cancelled) return;
+    for (let i = 0; i < playbook.commands.length; i++) {
+      if (commandStatuses[i].status !== 'pending') continue;
+      const deps = playbook.commands[i].dependsOn ?? [];
+      if (deps.every((dep) => succeeded.get(dep) === true)) {
+        spawnCommand(i);
+      }
+    }
+  };
+
+  spawnReady();
+  emit();
 }
 
 function addLog(state: RunningPlaybook, source: string, text: string): void {

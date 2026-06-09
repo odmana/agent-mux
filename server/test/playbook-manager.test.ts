@@ -1,4 +1,4 @@
-import { describe, it, expect, afterAll } from 'vitest';
+import { describe, it, expect, afterAll, vi } from 'vitest';
 
 import {
   startPlaybook,
@@ -91,6 +91,98 @@ describe.concurrent('playbook-manager', () => {
       await stopPlaybook(sessionId);
     }
   });
+
+  it('holds a dependent command as pending until its dependency exits', async () => {
+    const sessionId = 'session-deps-1';
+    try {
+      const logs: { source: string; text: string }[] = [];
+      await startPlaybook(
+        sessionId,
+        {
+          name: 'Gated',
+          commands: [
+            { label: 'First', command: 'sleep 1' },
+            { label: 'Second', command: 'echo second', dependsOn: ['First'] },
+          ],
+        },
+        '/tmp',
+        (output) => logs.push(output),
+        () => {},
+      );
+
+      // Immediately after start: the dependency runs, the dependent is gated.
+      const initial = getPlaybookState(sessionId)!;
+      expect(initial.commands.find((c) => c.label === 'First')!.status).toBe('running');
+      expect(initial.commands.find((c) => c.label === 'Second')!.status).toBe('pending');
+      expect(logs.some((l) => l.text.includes('second'))).toBe(false);
+
+      // After the dependency exits, the dependent runs and produces output.
+      await new Promise((resolve) => setTimeout(resolve, 1800));
+      const final = getPlaybookState(sessionId)!;
+      expect(final.commands.find((c) => c.label === 'First')!.status).toBe('exited');
+      expect(final.commands.find((c) => c.label === 'Second')!.status).toBe('exited');
+      expect(logs.some((l) => l.text.includes('second'))).toBe(true);
+    } finally {
+      await stopPlaybook(sessionId);
+    }
+  });
+
+  it('never starts a dependent when its dependency fails', async () => {
+    const sessionId = 'session-deps-2';
+    try {
+      const logs: { source: string; text: string }[] = [];
+      await startPlaybook(
+        sessionId,
+        {
+          name: 'FailFast',
+          commands: [
+            { label: 'Boom', command: 'node -e "process.exit(1)"' },
+            { label: 'After', command: 'echo after', dependsOn: ['Boom'] },
+          ],
+        },
+        '/tmp',
+        (output) => logs.push(output),
+        () => {},
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // The dependent must never have run, and a failure tears the playbook down.
+      expect(logs.some((l) => l.text.includes('after'))).toBe(false);
+      expect(getPlaybookState(sessionId)).toBeNull();
+    } finally {
+      await stopPlaybook(sessionId);
+    }
+  });
+
+  it('kills an independent running command when another command fails', async () => {
+    const sessionId = 'session-deps-3';
+    try {
+      await startPlaybook(
+        sessionId,
+        {
+          name: 'KillEverything',
+          commands: [
+            { label: 'Long', command: 'sleep 60' },
+            { label: 'Boom', command: 'node -e "process.exit(1)"' },
+          ],
+        },
+        '/tmp',
+        () => {},
+        () => {},
+      );
+
+      // Boom fails almost immediately and must tear the whole playbook down,
+      // taking the independent long-running sibling with it.
+      await vi.waitFor(
+        () => {
+          expect(getPlaybookState(sessionId)).toBeNull();
+        },
+        { timeout: 8000 },
+      );
+    } finally {
+      await stopPlaybook(sessionId);
+    }
+  }, 12000);
 
   it('stop followed by a quick start does not clobber the new run', async () => {
     // Regression: the old run's result-rejection used to delete the map entry
