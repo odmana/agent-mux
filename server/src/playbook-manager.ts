@@ -11,7 +11,10 @@ const devNull = new Writable({
   },
 });
 
-const LOG_BUFFER_LIMIT = 100 * 1024; // 100KB
+// Per-command buffer cap. Each command keeps its own recent output up to this
+// many bytes, so a chatty command can't evict a quiet one's history. Total
+// memory is roughly (number of commands) * this limit.
+const LOG_BUFFER_LIMIT_PER_COMMAND = 100 * 1024; // 100KB
 
 // Cap per-command kill wait so a stuck child can't hang stopPlaybook forever.
 const KILL_TIMEOUT_MS = 5000;
@@ -41,7 +44,9 @@ interface RunningPlaybook {
   startedAt: number;
   commands: CommandStatus[];
   logs: LogEntry[];
-  logSize: number;
+  // Bytes of buffered output per command source, used to trim each command's
+  // history independently. Keyed by command label.
+  sizes: Map<string, number>;
   kill: () => Promise<void>;
   // Set once kill has started so concurrent stop/start calls share a single wait.
   killPromise?: Promise<void>;
@@ -74,7 +79,7 @@ export async function startPlaybook(
     startedAt: Date.now(),
     commands: commandStatuses,
     logs: [],
-    logSize: 0,
+    sizes: new Map(),
     kill: async () => {},
   };
   runningPlaybooks.set(sessionId, state);
@@ -207,12 +212,18 @@ export async function startPlaybook(
 function addLog(state: RunningPlaybook, source: string, text: string): void {
   const entry: LogEntry = { source, text, timestamp: Date.now() };
   state.logs.push(entry);
-  state.logSize += text.length;
+  state.sizes.set(source, (state.sizes.get(source) ?? 0) + text.length);
 
-  // Trim oldest entries when exceeding buffer limit
-  while (state.logSize > LOG_BUFFER_LIMIT && state.logs.length > 1) {
-    const removed = state.logs.shift()!;
-    state.logSize -= removed.text.length;
+  // Trim only this command's oldest entries until it's back under its own
+  // budget, leaving other commands' history untouched. Keep at least one entry
+  // per source so a single oversized chunk can't erase the command entirely.
+  while ((state.sizes.get(source) ?? 0) > LOG_BUFFER_LIMIT_PER_COMMAND) {
+    const oldest = state.logs.findIndex((e) => e.source === source);
+    const hasNewer =
+      oldest !== -1 && state.logs.findIndex((e, i) => i > oldest && e.source === source) !== -1;
+    if (!hasNewer) break;
+    const [removed] = state.logs.splice(oldest, 1);
+    state.sizes.set(source, (state.sizes.get(source) ?? 0) - removed.text.length);
   }
 }
 
