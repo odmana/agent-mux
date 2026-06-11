@@ -5,10 +5,11 @@ import { resolve, dirname, basename } from 'node:path';
 import { Router } from 'express';
 import * as v from 'valibot';
 
-import type { RuntimeConfig } from './config.js';
+import { ensureConfigFile, type RuntimeConfig } from './config.js';
 import { fuzzyMatch } from './fuzzy-match.js';
 import { checkHooksStatus, installHooks } from './hooks-setup.js';
 import { clearSessionState } from './notification-watcher.js';
+import { openInEditor } from './open-file.js';
 import {
   createSession,
   createAuxSession,
@@ -72,7 +73,12 @@ export function listDirectories(prefix: string): DirectorySuggestion[] {
 const sessionPlaybooks = new Map<string, string>();
 export { sessionPlaybooks };
 
-export function createRouter(shell: string, runtime: RuntimeConfig, statePath?: string): Router {
+export function createRouter(
+  shell: string,
+  runtime: RuntimeConfig,
+  statePath?: string,
+  configPath?: string,
+): Router {
   const router = Router();
 
   function persistSessions(): void {
@@ -213,6 +219,16 @@ export function createRouter(shell: string, runtime: RuntimeConfig, statePath?: 
       defaultDirectory: runtime.defaultDirectory,
       playbooks: runtime.playbooks ?? [],
     });
+  });
+
+  router.post('/api/config/open', (_req, res) => {
+    try {
+      const path = ensureConfigFile(configPath);
+      openInEditor(path);
+      res.json({ ok: true, path });
+    } catch (err) {
+      res.status(500).json({ error: (err as Error).message });
+    }
   });
 
   router.get('/api/state', (_req, res) => {

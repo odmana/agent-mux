@@ -1,3 +1,4 @@
+import { Plus, Settings } from 'lucide-react';
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 
 import { uiColors } from '../terminal-config';
@@ -23,6 +24,7 @@ interface SidebarProps {
   onCloseSession: (id: string) => void;
   onReorderSessions: (sessions: Session[]) => void;
   onNewTab: () => void;
+  onOpenConfig: () => void;
   hasPlaybooks: boolean;
   onOpenPrimaryForTab: (sessionId: string) => void;
   onOpenAuxForTab: (sessionId: string) => void;
@@ -51,6 +53,7 @@ export default function Sidebar({
   onCloseSession,
   onReorderSessions,
   onNewTab,
+  onOpenConfig,
   hasPlaybooks,
   onOpenPrimaryForTab,
   onOpenAuxForTab,
@@ -207,10 +210,10 @@ export default function Sidebar({
         ))}
       </div>
 
-      <div className="p-2">
+      <div className="flex gap-2 p-2">
         <button
           onClick={onNewTab}
-          className="flex w-full items-center justify-center gap-2 rounded-lg p-2.5 text-sm transition-all"
+          className="flex flex-1 items-center justify-center gap-2 rounded-lg p-2.5 text-sm transition-all"
           style={{
             color: uiColors.textDim,
             border: `1px dashed ${uiColors.sidebarBorder}`,
@@ -224,9 +227,29 @@ export default function Sidebar({
             e.currentTarget.style.color = uiColors.textDim;
           }}
         >
-          <span className="text-base leading-none">+</span>
+          <Plus size={16} strokeWidth={2} />
           New session
           <Kbd className="ml-auto">N</Kbd>
+        </button>
+        <button
+          onClick={onOpenConfig}
+          title="Open config file"
+          aria-label="Open config file"
+          className="flex items-center justify-center rounded-lg p-2.5 transition-all"
+          style={{
+            color: uiColors.textDim,
+            border: `1px dashed ${uiColors.sidebarBorder}`,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = uiColors.textMuted;
+            e.currentTarget.style.color = uiColors.textMuted;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = uiColors.sidebarBorder;
+            e.currentTarget.style.color = uiColors.textDim;
+          }}
+        >
+          <Settings size={16} strokeWidth={2} />
         </button>
       </div>
 

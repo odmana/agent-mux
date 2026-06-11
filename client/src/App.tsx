@@ -125,6 +125,14 @@ export default function App() {
     setActiveId(session.id);
   };
 
+  const handleOpenConfig = useCallback(async () => {
+    const res = await fetch('/api/config/open', { method: 'POST' });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      console.error('Failed to open config file:', body.error ?? res.statusText);
+    }
+  }, []);
+
   const handleNotification = useCallback((sessionId: string, state: NotificationState) => {
     setNotificationStates((prev) => ({ ...prev, [sessionId]: state }));
   }, []);
@@ -546,6 +554,7 @@ export default function App() {
         onCloseSession={handleCloseSession}
         onReorderSessions={handleReorderSessions}
         onNewTab={() => setShowPicker(true)}
+        onOpenConfig={handleOpenConfig}
         hasPlaybooks={playbooks.length > 0}
         onOpenPrimaryForTab={handleOpenPrimaryForTab}
         onOpenAuxForTab={handleOpenAuxForTab}

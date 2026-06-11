@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, watch, type FSWatcher } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, watch, type FSWatcher } from 'node:fs';
 import { platform } from 'node:os';
 import { resolve } from 'node:path';
 
@@ -99,8 +99,16 @@ function applyDefaults(raw: RawConfig): Config {
   };
 }
 
-function resolveConfigPath(configPath?: string): string {
+export function resolveConfigPath(configPath?: string): string {
   return configPath ?? resolve(import.meta.dirname, '../../config.json');
+}
+
+export function ensureConfigFile(configPath?: string): string {
+  const path = resolveConfigPath(configPath);
+  if (!existsSync(path)) {
+    writeFileSync(path, '{\n  "playbooks": []\n}\n', 'utf-8');
+  }
+  return path;
 }
 
 function formatIssues(issues: readonly v.BaseIssue<unknown>[]): string {

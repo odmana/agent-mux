@@ -54,7 +54,7 @@ export function startServer(options: StartServerOptions = {}): Promise<ServerIns
   const app = express();
 
   app.use(express.json());
-  app.use(createRouter(config.shell, runtime, options.statePath));
+  app.use(createRouter(config.shell, runtime, options.statePath, options.configPath));
 
   function persistPlaybookSelection(): void {
     const allSessions = getAllPrimarySessions();
