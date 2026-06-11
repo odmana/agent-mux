@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } fr
 
 import { uiColors } from '../terminal-config';
 import type { PlaybookCommandStatus, PlaybookLogEntry } from '../types';
+import PlaybookRestartButton from './PlaybookRestartButton';
 import PlaybookToggleButton, { type PlaybookPending } from './PlaybookToggleButton';
 import ScrollArea from './ScrollArea';
 
@@ -43,6 +44,7 @@ interface PlaybookViewProps {
   startedAt: number | null;
   onStart: () => void;
   onStop: () => void;
+  onRestart: () => void;
   onChangePlaybook: () => void;
 }
 
@@ -55,6 +57,7 @@ export default function PlaybookView({
   startedAt,
   onStart,
   onStop,
+  onRestart,
   onChangePlaybook,
 }: PlaybookViewProps) {
   const [activeFilters, setActiveFilters] = useState<Set<string>>(
@@ -309,14 +312,18 @@ export default function PlaybookView({
           </div>
         )}
 
-        {/* Start / Stop button \u2014 always visible */}
-        <PlaybookToggleButton
-          isRunning={isRunning}
-          pending={pending}
-          onStart={onStart}
-          onStop={onStop}
-          className="h-8 w-8 shrink-0"
-        />
+        <div className="flex shrink-0 items-center gap-1.5">
+          {isRunning && (
+            <PlaybookRestartButton pending={pending} onRestart={onRestart} className="h-8 w-8" />
+          )}
+          <PlaybookToggleButton
+            isRunning={isRunning}
+            pending={pending}
+            onStart={onStart}
+            onStop={onStop}
+            className="h-8 w-8"
+          />
+        </div>
       </div>
 
       {/* Log stream */}

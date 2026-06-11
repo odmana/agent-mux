@@ -27,6 +27,7 @@ interface TerminalPaneProps {
   playbookStartedAt?: number | null;
   onPlaybookStart?: () => void;
   onPlaybookStop?: () => void;
+  onPlaybookRestart?: () => void;
   onChangePlaybook?: () => void;
   onPlaybookOutput?: (entry: PlaybookLogEntry) => void;
   onPlaybookStatusChange?: (commands: PlaybookCommandStatus[], startedAt: number | null) => void;
@@ -52,6 +53,7 @@ export default function TerminalPane({
   playbookStartedAt,
   onPlaybookStart,
   onPlaybookStop,
+  onPlaybookRestart,
   onChangePlaybook,
   onPlaybookOutput,
   onPlaybookStatusChange,
@@ -145,6 +147,7 @@ export default function TerminalPane({
               sendMessage({ type: 'playbook:stop' });
               onPlaybookStop?.();
             }}
+            onRestart={() => onPlaybookRestart?.()}
             onChangePlaybook={() => onChangePlaybook?.()}
           />
         </div>

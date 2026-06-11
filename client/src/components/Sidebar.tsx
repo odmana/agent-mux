@@ -29,6 +29,7 @@ interface SidebarProps {
   onOpenPlaybookForTab: (sessionId: string) => void;
   onStartPlaybookForTab: (sessionId: string) => void;
   onStopPlaybookForTab: (sessionId: string) => void;
+  onRestartPlaybookForTab: (sessionId: string) => void;
   initialWidth?: number;
   onWidthChange?: (width: number) => void;
 }
@@ -56,6 +57,7 @@ export default function Sidebar({
   onOpenPlaybookForTab,
   onStartPlaybookForTab,
   onStopPlaybookForTab,
+  onRestartPlaybookForTab,
   initialWidth,
   onWidthChange,
 }: SidebarProps) {
@@ -245,6 +247,7 @@ export default function Sidebar({
         onOpenPlaybook={onOpenPlaybookForTab}
         onStart={onStartPlaybookForTab}
         onStop={onStopPlaybookForTab}
+        onRestart={onRestartPlaybookForTab}
       />
     </div>
   );

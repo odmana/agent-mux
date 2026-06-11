@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 
 import { uiColors } from '../terminal-config';
 import type { Session } from '../types';
+import PlaybookRestartButton from './PlaybookRestartButton';
 import PlaybookToggleButton, { type PlaybookPending } from './PlaybookToggleButton';
 
 const SHOW_DELAY_MS = 400;
@@ -35,6 +36,7 @@ interface TabHoverPopoverProps {
   onOpenPlaybook: (sessionId: string) => void;
   onStart: (sessionId: string) => void;
   onStop: (sessionId: string) => void;
+  onRestart: (sessionId: string) => void;
 }
 
 const TabHoverPopover = forwardRef<TabHoverPopoverHandle, TabHoverPopoverProps>(
@@ -49,6 +51,7 @@ const TabHoverPopover = forwardRef<TabHoverPopoverHandle, TabHoverPopoverProps>(
       onOpenPlaybook,
       onStart,
       onStop,
+      onRestart,
     },
     ref,
   ) {
@@ -238,6 +241,13 @@ const TabHoverPopover = forwardRef<TabHoverPopoverHandle, TabHoverPopoverProps>(
             >
               Playbook
             </button>
+            {session.playbook && isPlaybookRunning && (
+              <PlaybookRestartButton
+                pending={isPlaybookPending}
+                onRestart={() => onRestart(session.id)}
+                className="shrink-0 px-2"
+              />
+            )}
             {session.playbook && (
               <PlaybookToggleButton
                 isRunning={isPlaybookRunning}

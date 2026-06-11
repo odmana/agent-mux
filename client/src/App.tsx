@@ -71,6 +71,8 @@ export default function App() {
   const [playbookStartedAt, setPlaybookStartedAt] = useState<Record<string, number | null>>({});
   const [showPlaybookSelector, setShowPlaybookSelector] = useState(false);
   const sendPlaybookMessageRef = useRef<Record<string, (msg: object) => void>>({});
+  // Sessions mid-restart: waiting for playbook:stopped before firing the start.
+  const playbookRestartingRef = useRef<Record<string, boolean>>({});
   const showPlaybookRef = useRef(showPlaybook);
   showPlaybookRef.current = showPlaybook;
 
@@ -299,6 +301,16 @@ export default function App() {
 
   const handleStopPlaybookForTab = useCallback(
     (sessionId: string) => {
+      sendPlaybookMessageRef.current[sessionId]?.({ type: 'playbook:stop' });
+      handlePlaybookStop(sessionId);
+    },
+    [handlePlaybookStop],
+  );
+
+  const handleRestartPlaybookForTab = useCallback(
+    (sessionId: string) => {
+      // Stop now; the playbook:stopped handler starts again once the flag is seen.
+      playbookRestartingRef.current[sessionId] = true;
       sendPlaybookMessageRef.current[sessionId]?.({ type: 'playbook:stop' });
       handlePlaybookStop(sessionId);
     },
@@ -540,6 +552,7 @@ export default function App() {
         onOpenPlaybookForTab={handleOpenPlaybookForTab}
         onStartPlaybookForTab={handleStartPlaybookForTab}
         onStopPlaybookForTab={handleStopPlaybookForTab}
+        onRestartPlaybookForTab={handleRestartPlaybookForTab}
         initialWidth={sidebarWidth}
         onWidthChange={handleSidebarWidthChange}
       />
@@ -576,6 +589,7 @@ export default function App() {
               playbookStartedAt={playbookStartedAt[session.id]}
               onPlaybookStart={() => handlePlaybookStart(session.id)}
               onPlaybookStop={() => handlePlaybookStop(session.id)}
+              onPlaybookRestart={() => handleRestartPlaybookForTab(session.id)}
               onChangePlaybook={() => setShowPlaybookSelector(true)}
               onPlaybookOutput={(entry) => {
                 setPlaybookLogs((prev) => ({
@@ -602,6 +616,17 @@ export default function App() {
                 }
               }}
               onPlaybookStopped={() => {
+                if (playbookRestartingRef.current[session.id]) {
+                  delete playbookRestartingRef.current[session.id];
+                  if (session.playbook) {
+                    sendPlaybookMessageRef.current[session.id]?.({
+                      type: 'playbook:start',
+                      playbookName: session.playbook,
+                    });
+                    handlePlaybookStart(session.id);
+                  }
+                  return;
+                }
                 setPlaybookRunning((prev) => ({ ...prev, [session.id]: false }));
                 setPlaybookStartedAt((prev) => ({ ...prev, [session.id]: null }));
                 setPlaybookPending((prev) => ({ ...prev, [session.id]: undefined }));
