@@ -16,24 +16,32 @@ import type {
   PlaybookLogEntry,
 } from './types';
 
-// Keep in sync with LOG_BUFFER_LIMIT in server/src/playbook-manager.ts — the server
-// caps its ring buffer at this size; the client drops the oldest entries to match
-// so long-running playbooks don't grow the tab's memory unbounded.
-const PLAYBOOK_LOG_BUFFER_LIMIT = 100 * 1024;
+// Keep in sync with LOG_BUFFER_LIMIT_PER_COMMAND in server/src/playbook-manager.ts.
+// Each command's output is capped independently so a chatty command can't evict a
+// quiet one's history; total memory is roughly (number of commands) * this limit.
+const PLAYBOOK_LOG_BUFFER_LIMIT_PER_COMMAND = 100 * 1024;
 
 function appendPlaybookLog(
   existing: PlaybookLogEntry[] | undefined,
   entry: PlaybookLogEntry,
 ): PlaybookLogEntry[] {
   const next = existing ? [...existing, entry] : [entry];
-  let total = 0;
-  for (const log of next) total += log.text.length;
-  let start = 0;
-  while (total > PLAYBOOK_LOG_BUFFER_LIMIT && start < next.length - 1) {
-    total -= next[start].text.length;
-    start++;
+
+  // Trim only the appended command's oldest entries until it's back under its own
+  // budget, leaving other commands' history in place. Mirrors addLog on the server.
+  let sourceSize = 0;
+  for (const log of next) {
+    if (log.source === entry.source) sourceSize += log.text.length;
   }
-  return start === 0 ? next : next.slice(start);
+  while (sourceSize > PLAYBOOK_LOG_BUFFER_LIMIT_PER_COMMAND) {
+    const oldest = next.findIndex((e) => e.source === entry.source);
+    const hasNewer =
+      oldest !== -1 && next.findIndex((e, i) => i > oldest && e.source === entry.source) !== -1;
+    if (!hasNewer) break;
+    sourceSize -= next[oldest].text.length;
+    next.splice(oldest, 1);
+  }
+  return next;
 }
 
 export default function App() {
